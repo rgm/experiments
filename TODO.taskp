@@ -1,4 +1,4 @@
-- reframe
+- reframe @done(2018-09-12)
 - figure out NREPL/piggieback with vim
 - cider nrepl
 - mount?
