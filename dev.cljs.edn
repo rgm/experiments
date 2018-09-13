@@ -1,1 +1,13 @@
-{:main sample.core}
+^{:css-dirs ["resources/public/css"]}
+{:main sample.core
+:infer-externs true
+ :npm-deps false
+ :foreign-libs [{:file "npm/dist/bundle.js"
+                 :provides ["react"
+                            "react-dom"
+                            "react-dom-server"
+                            "create-react-class"]
+                 :global-exports {react React
+                                  react-dom ReactDOM
+                                  react-dom-server ReactDOMServer
+                                  create-react-class createReactClass}}]}
