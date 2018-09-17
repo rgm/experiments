@@ -1,13 +1,35 @@
 ^{:css-dirs ["resources/public/css"]}
 {:main sample.core
+ :closure-defines {"re_frame.trace.trace_enabled_QMARK_" true}
+ :preloads [day8.re-frame-10x.preload
+            devtools.preload]
 :infer-externs true
  :npm-deps false
  :foreign-libs [{:file "npm/dist/bundle.js"
                  :provides ["react"
                             "react-dom"
                             "react-dom-server"
-                            "create-react-class"]
+                            "create-react-class"
+                            "semantic-ui"
+                            "leaflet"
+                            "leaflet-draw"
+                            "vega"
+                            "react-transition-group"
+
+                            "cljsjs.react-highlight"
+                            "cljsjs.highlight.langs.clojure"
+                            "cljsjs.react-flip-move"]
+
                  :global-exports {react React
                                   react-dom ReactDOM
                                   react-dom-server ReactDOMServer
-                                  create-react-class createReactClass}}]}
+                                  create-react-class createReactClass
+                                  semantic-ui SemanticUI
+                                  leaflet Leaflet
+                                  leaflet-draw LeafletDraw
+                                  vega Vega
+                                  react-transition-group RTG
+
+                                  cljsjs.react-highlight Highlight
+                                  cljsjs.highlight.langs.clojure HighlightLangsClojure
+                                  cljsjs.react-flip-move FlipMove}}]}

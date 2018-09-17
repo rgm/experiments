@@ -1,6 +1,8 @@
 (ns sample.core
   (:require [re-frame.core :as re-frame]
-            [reagent.core :as reagent]))
+            [reagent.core :as reagent]
+            [semantic-ui :as sui]
+            [stylefy.core :as stylefy]))
 
 (enable-console-print!)
 
@@ -20,20 +22,29 @@
 
 (defn layout-ui
   []
-  (let [current-count (deref (re-frame/subscribe [:subs/current-count]))]
-    [:div 
-     "re-frame example"
-     [:button
+  (let [current-count (re-frame/subscribe [:subs/current-count])]
+    [:div
+     [:> sui/Header "re-frame example"]
+     [:> sui/Button
       {:on-click #(re-frame/dispatch [:evt/increment-count])}
       "increment count"]
-     [:div "current count is " current-count]]))
+     [:> sui/Divider]
+     [:div
+      "current count is "
+      [:> sui/Label @current-count]]]))
+
+(defonce initializing? (atom true))
 
 (defn mount-root
   []
-  (re-frame/clear-subscription-cache!)
-  (re-frame/dispatch-sync [:initialize-db])
+  (when @initializing?
+    (re-frame/clear-subscription-cache!)
+    (re-frame/dispatch-sync [:initialize-db])
+    (reset! initializing? false))
   (reagent/render
-    [layout-ui]
+    [:> sui/Container
+     (stylefy/use-style {:margin-top "2em"} {})
+     [layout-ui]]
     (.getElementById js/document "app")))
 
 (mount-root)

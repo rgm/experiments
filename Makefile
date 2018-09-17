@@ -1,5 +1,5 @@
 figwheel: bundle
-	clojure -m figwheel.main -b dev -r
+	clojure -A:figwheel
 
 .PHONY=bundle
 bundle:

@@ -1,4 +1,8 @@
-- reframe @done(2018-09-12)
 - figure out NREPL/piggieback with vim
 - cider nrepl
 - mount?
+
+Archive:
+	- reframe @done(2018-09-12)
+	- adds more react, leaflet, vega @done(2018-09-17)
+	- add re-frame 10x @done(2018-09-17)
