@@ -3,7 +3,7 @@
  :closure-defines {"re_frame.trace.trace_enabled_QMARK_" true}
  :preloads [day8.re-frame-10x.preload
             devtools.preload]
-:infer-externs true
+ :infer-externs true
  :npm-deps false
  :foreign-libs [{:file "npm/dist/bundle.js"
                  :provides ["react"
