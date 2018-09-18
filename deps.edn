@@ -16,7 +16,7 @@
                               cljsjs/react-dom-server
                               cljsjs/create-react-class]}
         re-frame {:mvn/version "0.10.6"}
-        stylefy {:mvn/version "1.8.0-beta1"}}
+        stylefy {:mvn/version "1.8.0"}}
  :aliases {:figwheel
            {:main-opts ["--main" "figwheel.main"
                         "--build" "dev"
