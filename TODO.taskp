@@ -1,6 +1,9 @@
 - figure out NREPL/piggieback with vim
 - cider nrepl
 - mount?
+- unit tests
+- property tests
+- ring et al.
 
 Archive:
 	- reframe @done(2018-09-12)
