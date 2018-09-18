@@ -2,7 +2,8 @@
   (:require [re-frame.core :as re-frame]
             [reagent.core :as reagent]
             [semantic-ui :as sui]
-            [stylefy.core :as stylefy]))
+            [stylefy.core :as stylefy]
+            [cljs.pprint :as pp]))
 
 (enable-console-print!)
 
@@ -16,13 +17,25 @@
   :subs/current-count
   (fn [db _] (:click-count db)))
 
+(defn to-english
+  "thanks https://gist.github.com/devn/1691304"
+  [n]
+  (pp/cl-format nil "~@(~@[~R~]~^ ~A.~)" n))
+
+(re-frame/reg-sub
+  :subs/current-count-english
+  ;; demo of L3 stacking
+  ;; bit contrived since this will always re-run
+  (fn [_ _] (re-frame/subscribe [:subs/current-count]))
+  (fn [current-count _] (to-english current-count)))
+
 (re-frame/reg-event-db
   :evt/increment-count
   (fn [db [_ _]] (update db :click-count inc)))
 
 (defn layout-ui
   []
-  (let [current-count (re-frame/subscribe [:subs/current-count])]
+  (let [current-count (re-frame/subscribe [:subs/current-count-english])]
     [:div
      [:> sui/Header "re-frame example"]
      [:> sui/Button
