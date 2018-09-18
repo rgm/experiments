@@ -40,6 +40,7 @@
   (when @initializing?
     (re-frame/clear-subscription-cache!)
     (re-frame/dispatch-sync [:initialize-db])
+    (stylefy/init)
     (reset! initializing? false))
   (reagent/render
     [:> sui/Container
