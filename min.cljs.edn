@@ -1,9 +1,6 @@
-^{:css-dirs ["resources/public/css"]}
 {:main sample.core
- :closure-defines {"re_frame.trace.trace_enabled_QMARK_" true
-                   goog.DEBUG true}
- :preloads [day8.re-frame-10x.preload
-            devtools.preload]
+ :closure-defines {goog.DEBUG false}
+ :optimizations :advanced
  :infer-externs true
  :npm-deps false
  :language-out :ecmascript5 ;; see https://dev.clojure.org/jira/browse/CLJS-2376
@@ -26,11 +23,4 @@
                                   react-dom ReactDOM
                                   react-dom-server ReactDOMServer
                                   create-react-class createReactClass
-                                  react-transition-group RTG}}
-                {:file "npm/dist/reframe10x.js"
-                 :provides ["cljsjs.react-highlight"
-                            "cljsjs.highlight.langs.clojure"
-                            "cljsjs.react-flip-move"]
-                 :global-exports {cljsjs.react-highlight Highlight
-                                  cljsjs.highlight.langs.clojure HighlightLangsClojure
-                                  cljsjs.react-flip-move FlipMove}}]}
+                                  react-transition-group RTG}}]}

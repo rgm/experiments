@@ -1,5 +1,8 @@
-dist/bundle.js: node_modules src/index.js
-	yarn webpack
+bundle-dev: node_modules src/**
+	yarn webpack --config webpack-dev.config.js
+
+bundle-prd: node_modules src/**
+	yarn webpack --config webpack-prd.config.js
 
 node_modules: package.json
 	yarn install

@@ -8,4 +8,7 @@ do it better).
 
 Bootstrapping: `brew install clojure`
 
-Running figwheel: `clojure -A:figwheel` (or just `make`)
+Running figwheel: `make dev`
+
+Production build: `make prd` (closure whitespace compile) or `make min`
+(closure advanced compile)
