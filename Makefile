@@ -30,3 +30,4 @@ clean:
 
 clobber: clean
 	make -C npm clobber
+	rm -rf tmp
