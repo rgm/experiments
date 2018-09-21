@@ -1,3 +1,5 @@
+all: bundle-dev bundle-prd
+
 bundle-dev: node_modules src/**
 	yarn webpack --config webpack-dev.config.js
 

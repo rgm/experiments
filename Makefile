@@ -1,14 +1,14 @@
-.PHONY: dev prd min show-figwheel-config npm-dev npm-prd clean clobber
+.PHONY: dev prd min show-figwheel-config foreign-libs clean clobber
 
-dev: npm-dev
+dev: foreign-libs
 	clojure -A:figwheel
 
-prd: npm-prd
+prd: foreign-libs
 	clojure --main "figwheel.main" --build-once "prd"
 	cp target/public/cljs-out/prd-main.js dist/app.js
 	cp -r resources/public/css dist
 
-min: npm-prd
+min: foreign-libs
 	clojure --main "figwheel.main" --build-once "min"
 	cp target/public/cljs-out/min-main.js dist/app.js
 	cp -r resources/public/css dist
@@ -16,12 +16,8 @@ min: npm-prd
 show-figwheel-config:
 	clojure -m figwheel.main -pc -b dev -r
 
-
-npm-dev:
-	make -C npm bundle-dev
-
-npm-prd:
-	make -C npm bundle-prd
+foreign-libs:
+	make -C npm
 
 clean:
 	make -C npm clean
