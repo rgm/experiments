@@ -1,6 +1,7 @@
 {:main sample.core
  :closure-defines {goog.DEBUG false}
  :optimizations :whitespace
+ :verbose true
  :infer-externs true
  :npm-deps false
  :language-out :ecmascript5 ;; see https://dev.clojure.org/jira/browse/CLJS-2376
@@ -10,9 +11,12 @@
                 {:file "npm/dist/vega.min.js"
                  :provides ["vega"]
                  :global-exports {vega Vega}}
+                {:file "npm/dist/three.js"
+                 :provides ["threejs"]
+                 :global-exports {threejs THREE}}
                 {:file "npm/dist/semantic_ui.min.js"
-                 :provides ["semantic-ui"]
-                 :global-exports {semantic-ui SemanticUI}}
+                 :provides ["semantic-ui-react"]
+                 :global-exports {semantic-ui-react SemanticUI}}
                 {:file "npm/dist/react.min.js"
                  :provides ["react"
                             "react-dom"

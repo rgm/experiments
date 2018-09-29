@@ -5,17 +5,21 @@
  :preloads [day8.re-frame-10x.preload
             devtools.preload]
  :infer-externs true
+ :verbose true
  :npm-deps false
  :language-out :ecmascript5 ;; see https://dev.clojure.org/jira/browse/CLJS-2376
  :foreign-libs [{:file "npm/dist/leaflet.js"
                  :provides ["leaflet" "leaflet-draw"]
                  :global-exports {leaflet Leaflet leaflet-draw LeafletDraw}}
+                {:file "npm/dist/three.js"
+                 :provides ["threejs"]
+                 :global-exports {threejs THREE}}
                 {:file "npm/dist/vega.js"
                  :provides ["vega"]
                  :global-exports {vega Vega}}
                 {:file "npm/dist/semantic_ui.js"
-                 :provides ["semantic-ui"]
-                 :global-exports {semantic-ui SemanticUI}}
+                 :provides ["semantic-ui-react"]
+                 :global-exports {semantic-ui-react SemanticUI}}
                 {:file "npm/dist/react.js"
                  :provides ["react"
                             "react-dom"

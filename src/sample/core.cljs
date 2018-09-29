@@ -1,7 +1,7 @@
 (ns sample.core
   (:require [re-frame.core :as re-frame]
             [reagent.core :as reagent]
-            [semantic-ui :as sui]
+            [semantic-ui-react :as sui]
             [stylefy.core :as stylefy]
             [cljs.pprint :as pp]))
 
