@@ -3,25 +3,27 @@
  :optimizations :advanced
  :verbose true
  :infer-externs true
+ :output-dir "target/public/cljs-out/min"
+ :output-to "target/public/cljs-out/min-main.js"
  ; :npm-deps {:react "16.5.0"
  ;            :react-dom "16.5.0"
  ;            :create-react-class "15.6.3"}
- :install-deps true
+ :install-deps false
  :language-out :ecmascript5 ;; see https://dev.clojure.org/jira/browse/CLJS-2376
- :foreign-libs [{:file "npm/dist/leaflet.min.js"
+ :foreign-libs [{:file "target/public/js-out/leaflet.min.js"
                  :provides ["leaflet" "leaflet-draw"]
                  :global-exports {leaflet Leaflet leaflet-draw LeafletDraw}}
-                {:file "npm/dist/three.js"
+                {:file "target/public/js-out/three.js"
                  :provides ["threejs"]
                  :global-exports {threejs THREE}}
-                {:file "npm/dist/vega.min.js"
+                {:file "target/public/js-out/vega.min.js"
                  :provides ["vega"]
                  :global-exports {vega-lib Vega}}
-                {:file "npm/dist/semantic_ui.min.js"
+                {:file "target/public/js-out/semantic_ui.min.js"
                  :provides ["semantic-ui-react"]
                  :global-exports {semantic-ui-react SemanticUI}}
-                {:file "npm/dist/react.min.js"
-                 :provides [#_"react"
+                {:file "target/public/js-out/react.min.js"
+                 :provides ["react"
                             "react-dom"
                             "react-dom-server"
                             "create-react-class"

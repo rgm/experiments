@@ -2,5 +2,7 @@
 .cpcache
 .nrepl-port
 .rebel_readline_history
+dist
+node_modules
 target
 tmp

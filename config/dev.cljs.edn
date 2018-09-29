@@ -7,20 +7,22 @@
  :infer-externs true
  :verbose true
  :npm-deps false
+ :output-dir "target/public/cljs-out/dev"
+ :output-to "target/public/cljs-out/dev-main.js"
  :language-out :ecmascript5 ;; see https://dev.clojure.org/jira/browse/CLJS-2376
- :foreign-libs [{:file "npm/dist/leaflet.js"
+ :foreign-libs [{:file "target/public/js-out/leaflet.js"
                  :provides ["leaflet" "leaflet-draw"]
                  :global-exports {leaflet Leaflet leaflet-draw LeafletDraw}}
-                {:file "npm/dist/three.js"
+                {:file "target/public/js-out/three.js"
                  :provides ["threejs"]
                  :global-exports {threejs THREE}}
-                {:file "npm/dist/vega.js"
+                {:file "target/public/js-out/vega.js"
                  :provides ["vega"]
                  :global-exports {vega Vega}}
-                {:file "npm/dist/semantic_ui.js"
+                {:file "target/public/js-out/semantic_ui.js"
                  :provides ["semantic-ui-react"]
                  :global-exports {semantic-ui-react SemanticUI}}
-                {:file "npm/dist/react.js"
+                {:file "target/public/js-out/react.js"
                  :provides ["react"
                             "react-dom"
                             "react-dom-server"
@@ -31,7 +33,7 @@
                                   react-dom-server ReactDOMServer
                                   create-react-class createReactClass
                                   react-transition-group RTG}}
-                {:file "npm/dist/reframe10x.js"
+                {:file "target/public/js-out/reframe10x.js"
                  :provides ["cljsjs.react-highlight"
                             "cljsjs.highlight.langs.clojure"
                             "cljsjs.react-flip-move"]
