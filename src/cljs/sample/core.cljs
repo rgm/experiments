@@ -36,7 +36,7 @@
 (defn layout-ui
   []
   (let [current-count (re-frame/subscribe [:subs/current-count-english])]
-    [:div
+    [:<>
      [:> sui/Header "re-frame example"]
      [:> sui/Button
       {:on-click #(re-frame/dispatch [:evt/increment-count])}
