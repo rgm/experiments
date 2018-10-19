@@ -6,8 +6,8 @@
         expound {:mvn/version "0.7.1"}
         orchestra {:mvn/version "2018.09.10-1"}
         binaryage/devtools {:mvn/version "0.9.10"}
-        cider/cider-nrepl {:mvn/version "0.17.0"}
-        cider/piggieback {:mvn/version "0.3.8"}
+        cider/cider-nrepl {:mvn/version "0.18.0"}
+        cider/piggieback {:mvn/version "0.3.9"}
         com.bhauman/figwheel-main {:mvn/version "0.1.9"}
         com.bhauman/rebel-readline {:mvn/version "0.1.4"}
         com.bhauman/rebel-readline-cljs {:mvn/version "0.1.4"}
@@ -24,7 +24,7 @@
                               cljsjs/react-dom-server
                               cljsjs/create-react-class]}
         re-frame {:mvn/version "0.10.6"}
-        stylefy {:mvn/version "1.8.0"}}
+        stylefy {:mvn/version "1.10.0"}}
  :aliases {:rebel
            {:extra-paths ["dev"]
             :main-opts ["--main" "rebel-readline.main"]}
