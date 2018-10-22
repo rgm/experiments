@@ -1,16 +1,34 @@
 (ns sample.core
-  (:require [re-frame.core :as re-frame]
-            [reagent.core :as reagent]
-            [semantic-ui-react :as sui]
-            [stylefy.core :as stylefy]
-            [cljs.pprint :as pp]))
+  (:require
+    [cljs.pprint :as pp]
+    [cljs.spec.alpha :as s]
+    [expound.alpha :as expound]
+    [re-frame.core :as re-frame]
+    [reagent.core :as reagent]
+    [semantic-ui-react :as sui]
+    [stylefy.core :as stylefy]))
 
-(enable-console-print!)
+(s/def :app-db/click-count nat-int?)
+
+(s/def :app-db/db (s/keys :req-un [:app-db/click-count]))
+
+(defn check-and-throw
+  "Throws an exception if `db` doesn't match the Spec `a-spec`."
+  [a-spec db]
+  (when-not (s/valid? a-spec db)
+    (throw (ex-info
+             (str "spec check failed: "
+                  (expound/expound-str a-spec db))
+             {}))))
+
+(def check-spec
+  (re-frame/after (partial check-and-throw :app-db/db)))
 
 (def default-db {:click-count 0})
 
 (re-frame/reg-event-db
  :initialize-db
+ [check-spec]
  (fn [_ _] default-db))
 
 (re-frame/reg-sub
@@ -31,6 +49,7 @@
 
 (re-frame/reg-event-db
   :evt/increment-count
+  [check-spec]
   (fn [db [_ _]] (update db :click-count inc)))
 
 (defn layout-ui
