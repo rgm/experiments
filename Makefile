@@ -1,7 +1,8 @@
 .PHONY: dev prd min show-figwheel-config foreign-dev foreign-prd clean clobber
 
 dev: foreign-dev
-	clojure -A:figwheel
+	clojure --main rebel-readline.main --repl
+	# clojure -A:figwheel
 
 prd: foreign-prd
 	clojure --main "figwheel.main" --build-once "config/prd"

@@ -81,3 +81,8 @@
     (.getElementById js/document "app")))
 
 (mount-root)
+
+(comment
+  ;;; eval this to check if we're connected properly
+  (js/alert "hi from editor via piggieback")
+  (re-frame/dispatch [:evt/increment-count]))
