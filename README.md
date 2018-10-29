@@ -16,6 +16,8 @@ Running figwheel:
   -`(go)` will start nrepl and figwheel
   - (alternate: just `clojure -A:figwheel` if you don't care about nrepl)
 
+(see https://figwheel.org/docs/vim.html for nrepl/piggieback tips)
+
 Production build:
   - `make prd` (google closure whitespace compile), or
   - `make min` (google closure advanced compile)
