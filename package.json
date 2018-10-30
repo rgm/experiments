@@ -13,7 +13,7 @@
     "react-flip-move": "^3.0.2",
     "react-highlight.js": "^1.0.7",
     "react-transition-group": "^2.4.0",
-    "semantic-ui-react": "^0.82.4",
+    "semantic-ui-react": "^0.83.0",
     "three.js": "^0.77.1",
     "vega-lib": "^4.2.0"
   },
