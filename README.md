@@ -23,3 +23,21 @@ Running figwheel:
 Production build:
   - `make prd` (google closure whitespace compile), or
   - `make min` (google closure advanced compile)
+
+## Major concepts
+
+A laundry list of things I'm trying to plug together and that you'll find herein:
+
+- the new tools.deps stuff via a Makefile
+- consuming js foreign libs via a separate webpack build and npm/yarn
+- excluding cljsjs deps so that npm foreign libs can dominate (eg. React)
+- running figwheel both from the figwheel.main module and programmatically
+- adding devcards as a figwheel `extra-mains` thing
+- using externs inference for google closure compiler advanced builds
+- starting up my own nrepl server without using lein
+- setting up piggieback for connecting a browser repl to vim
+- reagent interop using `:>` instead of relying on clojurescript wrappers for semantic-ui
+- using macros to suck in JSON specs for Vega at build-time ... lets me keep the Vega in JSON for easy pasting into online Vega editors instead of doing a translation to and from cljs
+- a minimal re-frame setup within a single file
+- expound and orchestra for some clojure.spec support, and doing a re-frame spec-check on every change to the store
+- stylefy for local spot-styling of components
