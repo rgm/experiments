@@ -2,6 +2,7 @@
   (:require
     [cljs.pprint :as pp]
     [cljs.spec.alpha :as s]
+    [devcards.core :refer [defcard-rg]]
     [expound.alpha :as expound]
     [re-frame.core :as re-frame]
     [reagent.core :as reagent]
@@ -51,6 +52,13 @@
   :evt/increment-count
   [check-spec]
   (fn [db [_ _]] (update db :click-count inc)))
+
+(defcard-rg another-button
+  "** some markdown documentation **"
+  (fn [data-atom owner]
+    [:> sui/Button "a button"])
+  {:some "initial data"}
+  {:inspect-data true})
 
 (defn layout-ui
   []

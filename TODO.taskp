@@ -1,10 +1,10 @@
-- devcards
 - new cider nrepl
 - unit tests
 - property tests
 - ring et al.
 
 Archive:
+	- devcards @done(2018-10-29)
 	- figure out NREPL/piggieback with vim @done(2018-10-29)
 	- reframe @done(2018-09-12)
 	- adds more react, leaflet, vega @done(2018-09-17)

@@ -14,6 +14,8 @@ Running figwheel:
   - `make dev`
   - wait for repl to start
   -`(go)` will start nrepl and figwheel
+  - if figwheel doesn't open a browser page itself, head to http://localhost:9500
+    (or http://localhost:9500/cards.html for the devcards UI)
   - (alternate: just `clojure -A:figwheel` if you don't care about nrepl)
 
 (see https://figwheel.org/docs/vim.html for nrepl/piggieback tips)
