@@ -4,6 +4,7 @@
 .nrepl-port
 .rebel_readline_history
 dist
+nashorn_code_cache
 node_modules
 out
 target
