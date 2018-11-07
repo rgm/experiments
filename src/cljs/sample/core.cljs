@@ -56,7 +56,9 @@
 (defcard-rg another-button
   "** some markdown documentation **"
   (fn [data-atom owner]
-    [:> sui/Button "a button"])
+    [:<>
+     [:> sui/Header "A header"]
+     [:> sui/Button "a button"]])
   {:some "initial data"}
   {:inspect-data true})
 
