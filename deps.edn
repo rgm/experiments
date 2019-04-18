@@ -30,5 +30,5 @@
            ;;; use this one if you don't care about nrepl, piggieback, etc.
            ;;; which otherwise gets set up with (user/go)
            {:main-opts ["--main" "figwheel.main"
-                        "--build" "config/dev"
+                        "--build" "dev"
                         "--repl"]}}}

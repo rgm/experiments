@@ -6,13 +6,13 @@
 ;;; from cljs files
 ;;;
 ;;; vim + fireplace.vim
-;;; :Piggieback (figwheel.main.api/repl-env "config/dev")
+;;; :Piggieback (figwheel.main.api/repl-env "dev")
 ;;;
 ;;; vscode + calva
 ;;; TODO - where's the doc for this??
 
 (def nrepl-port 7888)
-(def figwheel-build-id "config/dev")
+(def figwheel-build-id "dev")
 
 (defn go
   []
