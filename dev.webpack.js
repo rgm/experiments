@@ -11,7 +11,7 @@ module.exports = {
   mode: 'development',
   devtool: "source-map",
   output: {
-    path: path.resolve(path.join(__dirname, "../target/public/js-out")),
+    path: path.resolve(path.join(__dirname, "target/public/js-out")),
     filename: '[name].js'
   }
 }

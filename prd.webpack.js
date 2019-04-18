@@ -10,7 +10,7 @@ module.exports = {
   },
   mode: 'production',
   output: {
-    path: path.resolve(path.join(__dirname, "../target/public/js-out")),
+    path: path.resolve(path.join(__dirname, "target/public/js-out")),
     filename: '[name].min.js'
   }
 }

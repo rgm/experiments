@@ -1,15 +1,15 @@
-.PHONY: dev prd min show-figwheel-config foreign-dev foreign-prd clean clobber
+.PHONY: repl prd min show-figwheel-config foreign-libs clean clobber
 
-dev: foreign-dev
+repl: foreign-libs
 	clojure --main rebel-readline.main --repl
 	# clojure -A:figwheel
 
-prd: foreign-prd
+prd: foreign-libs
 	clojure --main "figwheel.main" --build-once "prd"
 	cp target/public/cljs-out/prd-main.js dist/app.js
 	cp -r resources/public/css dist
 
-min: foreign-prd
+min: foreign-libs
 	clojure --main "figwheel.main" --build-once "min"
 	cp target/public/cljs-out/min-main.js dist/app.js
 	cp -r resources/public/css dist
@@ -17,15 +17,16 @@ min: foreign-prd
 show-figwheel-config:
 	clojure -m figwheel.main -pc -b dev -r
 
-foreign-dev: node_modules src/frontend/foreign_libs/**
-	yarn webpack --config dev.webpack.js
+foreign-libs: target/public/js-out
 
-foreign-prd: node_modules src/frontend/foreign_libs/**
+target/public/js-out: node_modules src/frontend/foreign_libs/**
+	yarn webpack --config dev.webpack.js
 	yarn webpack --config prd.webpack.js
+	@touch $@
 
 node_modules: package.json
 	yarn install
-	touch node_modules
+	@touch $@
 
 clean:
 	rm -rf target out nashorn_code_cache .cljs_nashorn_repl
@@ -33,4 +34,3 @@ clean:
 
 clobber: clean
 	rm -rf tmp node_modules
-
