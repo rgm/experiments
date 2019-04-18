@@ -17,10 +17,10 @@ min: foreign-prd
 show-figwheel-config:
 	clojure -m figwheel.main -pc -b dev -r
 
-foreign-dev: node_modules src/js/**
+foreign-dev: node_modules src/frontend/foreign_libs/**
 	yarn webpack --config config/webpack-dev.config.js
 
-foreign-prd: node_modules src/js/**
+foreign-prd: node_modules src/frontend/foreign_libs/**
 	yarn webpack --config config/webpack-prd.config.js
 
 node_modules: package.json

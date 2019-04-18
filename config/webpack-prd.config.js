@@ -2,11 +2,11 @@ var path = require('path');
 
 module.exports = {
   entry: {
-    'leaflet': './src/js/leaflet.js',
-    'react': './src/js/react.js',
-    'semantic_ui': './src/js/semantic_ui.js',
-    'three': './src/js/three.js',
-    'vega': './src/js/vega.js'
+    'leaflet': './src/frontend/foreign_libs/leaflet.js',
+    'react': './src/frontend/foreign_libs/react.js',
+    'semantic_ui': './src/frontend/foreign_libs/semantic_ui.js',
+    'three': './src/frontend/foreign_libs/three.js',
+    'vega': './src/frontend/foreign_libs/vega.js'
   },
   mode: 'production',
   output: {
