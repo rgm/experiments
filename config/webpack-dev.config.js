@@ -4,7 +4,6 @@ module.exports = {
   entry: {
     'leaflet': './src/js/leaflet.js',
     'react': './src/js/react.js',
-    'reframe10x': './src/js/reframe10x.js',
     'semantic_ui': './src/js/semantic_ui.js',
     'three': './src/js/three.js',
     'vega': './src/js/vega.js'
