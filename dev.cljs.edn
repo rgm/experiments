@@ -27,9 +27,7 @@
                 {:file "target/public/js-out/react.js"
                  :provides ["react"
                             "react-dom"
-                            "react-dom-server"
-                            "create-react-class"
-                            "react-transition-group"]
+                            "create-react-class"]
                  :global-exports {react React
                                   react-dom ReactDOM
                                   create-react-class createReactClass}}]}

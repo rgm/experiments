@@ -22,11 +22,7 @@
                 {:file "target/public/js-out/react.min.js"
                  :provides ["react"
                             "react-dom"
-                            "react-dom-server"
-                            "create-react-class"
-                            "react-transition-group"]
+                            "create-react-class"]
                  :global-exports {react React
                                   react-dom ReactDOM
-                                  react-dom-server ReactDOMServer
-                                  create-react-class createReactClass
-                                  react-transition-group RTG}}]}
+                                  create-react-class createReactClass}}]}
