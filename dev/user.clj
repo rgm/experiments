@@ -1,6 +1,6 @@
 (ns user
   (:require [figwheel.main.api]
-            [sample.helpers :as help]))
+            [sample.backend-main :as backend]))
 
 ;;; starting up figwheel manually so that we can piggieback into the browser
 ;;; from cljs files
@@ -16,8 +16,8 @@
 
 (defn go
   []
-  (help/start-nrepl-server! 7888)
-  (help/start-figwheel-build! figwheel-build-id))
+  (backend/start-nrepl-server! 7888)
+  (backend/start-figwheel-build! figwheel-build-id))
 
 (defn cljs-repl
   []

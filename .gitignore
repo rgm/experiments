@@ -1,5 +1,6 @@
 .DS_Store
 .cljs_nashorn_repl
+.cljs_node_repl
 .cpcache
 .nrepl-port
 .rebel_readline_history
