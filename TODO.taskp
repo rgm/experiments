@@ -1,7 +1,9 @@
 - new cider nrepl
 - unit tests
 - property tests
-- ring et al.
+- ring et al // aleph + reitit
+- prepl
+- integrant / aero / ctns
 
 Archive:
 	- devcards @done(2018-10-29)
