@@ -1,4 +1,5 @@
-(ns rgm.core
+(ns rgm.frontend-main
+  "functions for initializing the SPA"
   (:require
     [cljs.pprint :as pp]
     [cljs.spec.alpha :as s]

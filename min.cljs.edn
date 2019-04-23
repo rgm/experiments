@@ -1,4 +1,4 @@
-{:main sample.core
+{:main rgm.frontend-main
  :closure-defines {goog.DEBUG false}
  :optimizations :advanced
  :verbose true

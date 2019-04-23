@@ -1,12 +1,13 @@
 (ns rgm.backend-main
   (:require
+    [aero.core :as aero]
     [cider.nrepl]
     [cider.piggieback]
-    [nrepl.server :as nrepl]
     [clojure.java.io :as io]
-    [figwheel.main.api]))
-
-(defonce running-nrepl-server (atom nil))
+    [figwheel.main.api]
+    [integrant.core :as ig]
+    [nrepl.server :as nrepl]
+    [taoensso.timbre :as timbre]))
 
 (defn make-nrepl-handler []
   (let [middleware-symbols (conj cider.nrepl/cider-middleware
@@ -14,24 +15,52 @@
         middleware-vars (map resolve middleware-symbols)]
   (apply nrepl/default-handler middleware-vars)))
 
-(defn start-nrepl-server!
-  [port]
-  (let [server (nrepl/start-server :port port
-                                   :handler (make-nrepl-handler))]
-    (reset! running-nrepl-server server)
+(defmethod ig/init-key :rgm/nrepl
+  [_ {:keys [port] :or {port 0}}] ;; nrepl picks randomly if 0
+  (let [server (nrepl/start-server
+                 :port port
+                 :handler (make-nrepl-handler))
+        port (:port server)]
+    (timbre/info "starting nrepl server on port" port)
     (spit ".nrepl-port" port)
-    (println "nREPL server started on port" port)))
+    server))
 
-(defn stop-nrepl-server!
-  []
-  (when-let [server (deref running-nrepl-server)]
-    (nrepl/stop-server server)
-    (reset! running-nrepl-server nil)
-    (let [port (slurp ".nrepl-port")]
-      (io/delete-file ".nrepl-port" true)
-      (println "nREPL server on port" port "stopped"))))
+(defmethod ig/halt-key! :rgm/nrepl
+  [_ server]
+  (timbre/info "stopping nrepl server")
+  (nrepl/stop-server server)
+  (io/delete-file ".nrepl-port" true))
 
-(defn start-figwheel-build!
-  [build-id]
+(defmethod ig/init-key :rgm/figwheel
+  [_ {:keys [build-id]}]
+  (timbre/info (str "starting figwheel with build-id \"" build-id "\""))
   (figwheel.main.api/start {:mode :serve} build-id)
-  (println (str "Figwheel started with build \"" build-id "\"")))
+  #(figwheel.main.api/stop build-id))
+
+(defmethod ig/halt-key! :rgm/figwheel
+  [_ halt-fn]
+  (timbre/info "stopping figwheel")
+  (halt-fn))
+
+(defonce running-system (atom nil))
+
+(defn make-ig-system
+  []
+  {:rgm/nrepl {:port 0}
+   :rgm/figwheel {:build-id "dev"}})
+
+(defn start!
+  []
+  (timbre/set-level! :info)
+  (reset! running-system (ig/init (make-ig-system)))
+  :started)
+
+(defn stop!
+  []
+  (timbre/set-level! :info)
+  (ig/halt! @running-system)
+  :stopped)
+
+(defn -main
+  []
+  (start!))

@@ -1,6 +1,6 @@
 (ns user
   (:require [figwheel.main.api]
-            [sample.backend-main :as backend]))
+            [rgm.backend-main :as backend]))
 
 ;;; starting up figwheel manually so that we can piggieback into the browser
 ;;; from cljs files
@@ -11,20 +11,25 @@
 ;;; vscode + calva
 ;;; TODO - where's the doc for this??
 
-(def nrepl-port 7888)
-(def figwheel-build-id "dev")
-
 (defn go
   []
-  (backend/start-nrepl-server! 7888)
-  (backend/start-figwheel-build! figwheel-build-id))
+  (backend/start!))
+
+(defn stop
+  []
+  (backend/stop!))
 
 (defn cljs-repl
-  []
-  (figwheel.main.api/cljs-repl figwheel-build-id))
+  ([]
+   (cljs-repl "dev"))
+  ([build-id]
+   (figwheel.main.api/cljs-repl build-id)))
 
 (defn repl-env
-  []
-  (figwheel.main.api/repl-env figwheel-build-id))
+  ([]
+   (repl-env "dev"))
+  ([build-id]
+   (figwheel.main.api/repl-env build-id)))
 
-(println "[dev/user] enter `(go)` to start up NREPL and figwheel")
+(println "[dev] evaluate (go) to start up backend servers")
+(println "[dev] evaluate (stop) to stop backend servers")
