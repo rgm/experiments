@@ -2,6 +2,7 @@
   (:require
     [cljs.pprint :as pp]
     [cljs.spec.alpha :as s]
+    [day8.re-frame.http-fx]
     [devcards.core :refer [defcard-rg]]
     [expound.alpha :as expound]
     [re-frame.core :as re-frame]
