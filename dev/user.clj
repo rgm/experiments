@@ -26,3 +26,5 @@
 (defn repl-env
   []
   (figwheel.main.api/repl-env figwheel-build-id))
+
+(println "[dev/user] enter `(go)` to start up NREPL and figwheel")
