@@ -21,11 +21,19 @@ repl: foreign-libs
 	clojure --main rebel-readline.main --repl
 	# clojure -A:figwheel
 
-.PHONY: build foreign-libs
-build: foreign-libs
+.PHONY: build
+build: figwheel-min badigeon-jar
+
+figwheel-min: foreign-libs
 	clojure --main "figwheel.main" --build-once "min"
 	cp target/public/cljs-out/min-main.js dist/app.js
 	cp -r resources/public/css dist
+
+SHA1=$(shell git rev-parse --short HEAD)
+NOW=$(shell date +%Y%m%d)
+
+badigeon-jar:
+	clojure -A:build -m make-jar "$(NOW)-$(SHA1)"
 
 foreign-libs: target/public/js-out
 
@@ -39,7 +47,6 @@ node_modules: package.json
 	@touch $@
 
 .PHONY: clean clobber
-
 clean:
 	rm -rf target out pom.xml
 	rm -rf nashorn_code_cache .cljs_nashorn_repl .cljs_node_repl
