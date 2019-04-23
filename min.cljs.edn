@@ -10,7 +10,10 @@
  ;            :create-react-class "15.6.3"}
  :install-deps false
  :language-out :ecmascript5 ;; see https://dev.clojure.org/jira/browse/CLJS-2376
- :foreign-libs [{:file "target/public/js-out/leaflet.min.js"
+ :foreign-libs [{:file "target/public/js-out/file_saver.min.js"
+                 :provides ["file-saver"]
+                 :global-exports {file-saver FileSaver}}
+                {:file "target/public/js-out/leaflet.min.js"
                  :provides ["leaflet" "leaflet-draw"]
                  :global-exports {leaflet Leaflet leaflet-draw LeafletDraw}}
                 {:file "target/public/js-out/three.js"

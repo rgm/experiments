@@ -12,7 +12,10 @@
  :output-dir "target/public/cljs-out/dev"
  :output-to "target/public/cljs-out/dev-main.js"
  :language-out :ecmascript5 ;; see https://dev.clojure.org/jira/browse/CLJS-2376
- :foreign-libs [{:file "target/public/js-out/leaflet.js"
+ :foreign-libs [{:file "target/public/js-out/file_saver.js"
+                 :provides ["file-saver"]
+                 :global-exports {file-saver FileSaver}}
+                {:file "target/public/js-out/leaflet.js"
                  :provides ["leaflet" "leaflet-draw"]
                  :global-exports {leaflet Leaflet leaflet-draw LeafletDraw}}
                 {:file "target/public/js-out/three.js"

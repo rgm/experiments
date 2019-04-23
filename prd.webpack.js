@@ -2,6 +2,7 @@ var path = require('path');
 
 module.exports = {
   entry: {
+    'file_saver': './src/frontend/foreign_libs/file_saver.js',
     'leaflet': './src/frontend/foreign_libs/leaflet.js',
     'react': './src/frontend/foreign_libs/react.js',
     'semantic_ui': './src/frontend/foreign_libs/semantic_ui.js',
