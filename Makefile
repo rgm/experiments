@@ -41,12 +41,14 @@ node_modules: package.json
 .PHONY: clean clobber
 
 clean:
-	rm -rf target out nashorn_code_cache .cljs_nashorn_repl
+	rm -rf target out pom.xml
+	rm -rf nashorn_code_cache .cljs_nashorn_repl .cljs_node_repl
 	rm -rf dist/*.js dist/*.map dist/css
+	rm -rf .nrepl-port
 	find . -name .DS_Store -exec rm {} \;
 
 clobber: clean
-	rm -rf tmp node_modules
+	rm -rf tmp node_modules .cpcache .rebel_readline_history
 
 # utility tasks
 
