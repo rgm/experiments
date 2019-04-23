@@ -1,5 +1,5 @@
-(ns sample.devcards-runner
-  (:require [sample.core]
+(ns rgm.devcards-runner
+  (:require [rgm.core]
             [devcards.core]
             [reagent.core]))
 

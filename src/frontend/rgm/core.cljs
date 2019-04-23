@@ -1,4 +1,4 @@
-(ns sample.core
+(ns rgm.core
   (:require
     [cljs.pprint :as pp]
     [cljs.spec.alpha :as s]

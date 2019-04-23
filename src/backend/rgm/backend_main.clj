@@ -1,5 +1,5 @@
-(ns sample.backend-main
-  (:require 
+(ns rgm.backend-main
+  (:require
     [cider.nrepl]
     [cider.piggieback]
     [nrepl.server :as nrepl]
