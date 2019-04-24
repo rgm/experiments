@@ -30,5 +30,6 @@
   ([build-id]
    (figwheel.main.api/repl-env build-id)))
 
-(println "[dev] evaluate (go) to start integrant system")
-(println "[dev] evaluate (stop) to stop integrant system")
+(println "[dev] evaluate (go) to start integrant")
+(println "[dev] evaluate (halt) to stop integrant")
+(println "[dev] evaluate (reset) to reload changed namespaces and re-start integrant")
