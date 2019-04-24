@@ -18,14 +18,13 @@ test:
 
 .PHONY: repl
 repl: foreign-libs
-	clojure --main rebel-readline.main --repl
-	# clojure -A:figwheel
+	clojure -A:dev:frontend:test --main "rebel-readline.main"
 
 .PHONY: build
 build: figwheel-min badigeon-jar
 
 figwheel-min: foreign-libs
-	clojure --main "figwheel.main" --build-once "min"
+	clojure -A:frontend --main "figwheel.main" --build-once "min"
 	cp target/public/cljs-out/min-main.js dist/app.js
 	cp -r resources/public/css dist
 
