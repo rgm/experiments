@@ -1,5 +1,6 @@
 (ns user
   (:require
+    [clojure.tools.namespace.repl :as tns]
     [figwheel.main.api]
     [integrant.core :as ig]
     [integrant.repl :refer [clear go halt prep reset reset-all]]
@@ -16,6 +17,9 @@
 ;;; TODO - where's the doc for this??
 
 (timbre/set-level! :debug)
+
+;; ignore cljs ... see https://lambdaisland.com/blog/2018-02-09-reloading-woes
+(tns/set-refresh-dirs "src/common" "src/backend")
 
 (defmethod ig/init-key :rgm/figwheel
   [_ {:keys [build-id]}]
