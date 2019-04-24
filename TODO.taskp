@@ -1,12 +1,14 @@
+- fix ctns (reset) on figwheel
+- aero
 - new cider nrepl
 - unit tests
 - property tests
-- ring et al // aleph + reitit
 - prepl
-- integrant / aero / ctns
 - code splitting
 
 Archive:
+	- integrant @done(2019-04-24)
+	- ring et al // aleph + reitit @done(2019-04-24)
 	- devcards @done(2018-10-29)
 	- figure out NREPL/piggieback with vim @done(2018-10-29)
 	- reframe @done(2018-09-12)

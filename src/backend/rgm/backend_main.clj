@@ -1,13 +1,13 @@
 (ns rgm.backend-main
   (:require
     [aero.core :as aero]
-    [aleph.http :as aleph]
     [cider.nrepl]
     [cider.piggieback]
     [clojure.java.io :as io]
     [figwheel.main.api]
     [integrant.core :as ig]
     [nrepl.server :as nrepl]
+    [rgm.http]
     [taoensso.timbre :as timbre]))
 
 (defn make-nrepl-handler []
@@ -45,18 +45,6 @@
   [_ halt-fn]
   (timbre/info "stopping figwheel")
   (halt-fn))
-
-(defmethod ig/init-key :rgm/http
-  [_ {:keys [port]}]
-  (timbre/info "starting http server")
-  (aleph/start-server (fn [req] {:status 200
-                                 :headers {}
-                                 :body "success" }) {:port port}))
-
-(defmethod ig/halt-key! :rgm/http
-  [_ server]
-  (timbre/info "stopping http server")
-  (.close server))
 
 (defonce running-system (atom nil))
 
