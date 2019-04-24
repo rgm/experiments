@@ -1,6 +1,7 @@
 (ns user
   (:require
     [figwheel.main.api]
+    [integrant.core :as ig]
     [integrant.repl :refer [clear go halt prep reset reset-all]]
     [rgm.backend-main :as backend]
     [taoensso.timbre :as timbre]))
@@ -16,7 +17,26 @@
 
 (timbre/set-level! :debug)
 
-(integrant.repl/set-prep! backend/make-ig-system)
+(defmethod ig/init-key :rgm/figwheel
+  [_ {:keys [build-id]}]
+  (timbre/info (str "starting figwheel with build-id \"" build-id "\""))
+  (figwheel.main.api/start {:mode :serve} build-id)
+  #(try
+     ;; make idempotent for integrant
+     (figwheel.main.api/stop build-id)
+     (catch Exception e (timbre/debug "figwheel is already stopped"))))
+
+(defmethod ig/halt-key! :rgm/figwheel
+  [_ halt-fn]
+  (timbre/info "stopping figwheel")
+  (halt-fn))
+
+(defn make-ig-dev-system
+  []
+  (merge (backend/make-ig-system)
+         {:rgm/figwheel {:build-id "dev"}}))
+
+(integrant.repl/set-prep! make-ig-dev-system)
 
 (defn cljs-repl
   ([]

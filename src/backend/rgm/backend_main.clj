@@ -32,26 +32,11 @@
   (nrepl/stop-server server)
   (io/delete-file ".nrepl-port" true))
 
-(defmethod ig/init-key :rgm/figwheel
-  [_ {:keys [build-id]}]
-  (timbre/info (str "starting figwheel with build-id \"" build-id "\""))
-  (figwheel.main.api/start {:mode :serve} build-id)
-  #(try
-     ;; make idempotent for integrant
-     (figwheel.main.api/stop build-id)
-     (catch Exception e (timbre/debug "figwheel is already stopped"))))
-
-(defmethod ig/halt-key! :rgm/figwheel
-  [_ halt-fn]
-  (timbre/info "stopping figwheel")
-  (halt-fn))
-
 (defonce running-system (atom nil))
 
 (defn make-ig-system
   []
   {:rgm/nrepl {:port 0}
-   :rgm/figwheel {:build-id "dev"}
    :rgm/http {:port 8080}})
 
 (defn -main
