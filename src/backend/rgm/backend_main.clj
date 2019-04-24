@@ -66,18 +66,7 @@
    :rgm/figwheel {:build-id "dev"}
    :rgm/http {:port 8080}})
 
-(defn start!
-  []
-  (timbre/set-level! :info)
-  (reset! running-system (ig/init (make-ig-system)))
-  :started)
-
-(defn stop!
-  []
-  (timbre/set-level! :info)
-  (ig/halt! @running-system)
-  :stopped)
-
 (defn -main
   []
-  (start!))
+  (timbre/set-level! :info)
+  (ig/init (make-ig-system)))

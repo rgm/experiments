@@ -27,6 +27,7 @@
   devcards {:mvn/version "0.2.6" :exclusions [cljsjs/react cljsjs/react-dom]}
   expound {:mvn/version "0.7.2"}
   integrant {:mvn/version "0.7.0"}
+  integrant/repl {:mvn/version "0.3.1"}
   lambdaisland/kaocha {:mvn/version "0.0-418"}
   lambdaisland/kaocha-cljs {:mvn/version "0.0-32"}
   lambdaisland/kaocha-cloverage {:mvn/version "0.0-32"}

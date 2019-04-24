@@ -1,6 +1,9 @@
 (ns user
-  (:require [figwheel.main.api]
-            [rgm.backend-main :as backend]))
+  (:require
+    [figwheel.main.api]
+    [integrant.repl :refer [clear go halt prep reset reset-all]]
+    [rgm.backend-main :as backend]
+    [taoensso.timbre :as timbre]))
 
 ;;; starting up figwheel manually so that we can piggieback into the browser
 ;;; from cljs files
@@ -11,13 +14,9 @@
 ;;; vscode + calva
 ;;; TODO - where's the doc for this??
 
-(defn go
-  []
-  (backend/start!))
+(timbre/set-level! :debug)
 
-(defn stop
-  []
-  (backend/stop!))
+(integrant.repl/set-prep! backend/make-ig-system)
 
 (defn cljs-repl
   ([]
@@ -31,5 +30,5 @@
   ([build-id]
    (figwheel.main.api/repl-env build-id)))
 
-(println "[dev] evaluate (go) to start up backend servers")
-(println "[dev] evaluate (stop) to stop backend servers")
+(println "[dev] evaluate (go) to start integrant system")
+(println "[dev] evaluate (stop) to stop integrant system")
