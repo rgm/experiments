@@ -1,0 +1,16 @@
+^{
+  :mode :serve ;; lets us start repl manually
+  }
+{:main pfig.test
+ :npm-deps false
+ :install-deps false
+ :output-dir "target/public/cljs-out"
+ :output-to "target/public/cljs-out/dev-main.js"
+ :language-out :ecmascript5
+ :foreign-libs [{:file "foreign_libs/dist/react.js"
+                 :provides ["react"
+                            "react-dom"
+                            #_"create-react-class"]
+                 :global-exports {react React
+                                  react-dom ReactDOM
+                                  #_#_create-react-class createReactClass}}]}

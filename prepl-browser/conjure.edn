@@ -1,0 +1,3 @@
+{:conns
+ {:jvm {:port 5555}
+  :figwheel {:port 5557 :lang :cljs}}}
