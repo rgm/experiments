@@ -10,22 +10,22 @@
   aleph {:mvn/version "0.4.7-alpha5"}
   buddy {:mvn/version "2.0.0"}
   cider/cider-nrepl {:mvn/version "0.21.1"}
-  cider/piggieback {:mvn/version "0.4.0"}
-  com.bhauman/figwheel-main {:mvn/version "0.2.0"}
+  cider/piggieback {:mvn/version "0.4.1"}
+  com.bhauman/figwheel-main {:mvn/version "0.2.1"}
   com.layerware/hugsql {:mvn/version "0.4.9"}
   com.taoensso/timbre {:mvn/version "4.10.0"}
   com.taoensso/tufte {:mvn/version "2.1.0-RC4"}
   expound {:mvn/version "0.7.2"}
   integrant {:mvn/version "0.7.0"}
-  metosin/reitit {:mvn/version "0.3.1"}
+  metosin/reitit {:mvn/version "0.3.9"}
   nrepl/nrepl {:mvn/version "0.6.0"}
-  org.clojure/clojure {:mvn/version "1.10.1-beta2"}
+  org.clojure/clojure {:mvn/version "1.10.1"}
   org.clojure/clojurescript {:mvn/version "1.10.520"}
-  org.clojure/core.async {:mvn/version "0.4.490"}
+  org.clojure/core.async {:mvn/version "0.4.500"}
   org.clojure/core.match {:mvn/version "0.3.0"}
   org.clojure/spec.alpha {:mvn/version "0.2.176"}
   org.clojure/test.check {:mvn/version "0.10.0-alpha4"}
-  org.postgresql/postgresql {:mvn/version "42.2.5"}
+  org.postgresql/postgresql {:mvn/version "42.2.6"}
   }
  :aliases
  {:build
