@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+cat <<EOF
+- [ ] install java, jenv
+- [ ] install clojure (via homebrew, etc).
+- [ ] install node, yarn
+EOF

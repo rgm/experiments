@@ -1,0 +1,31 @@
+{:main rgm.frontend-main
+ :closure-defines {goog.DEBUG false}
+ :optimizations :whitespace
+ :verbose true
+ :infer-externs true
+ :npm-deps false
+ :output-dir "target/public/cljs-out/prd"
+ :output-to "target/public/cljs-out/prd-main.js"
+ :language-out :ecmascript5 ;; see https://dev.clojure.org/jira/browse/CLJS-2376
+ :foreign-libs [{:file "target/public/js-out/file_saver.min.js"
+                 :provides ["file-saver"]
+                 :global-exports {file-saver FileSaver}}
+                {:file "target/public/js-out/leaflet.min.js"
+                 :provides ["leaflet" "leaflet-draw"]
+                 :global-exports {leaflet Leaflet leaflet-draw LeafletDraw}}
+                {:file "target/public/js-out/vega.min.js"
+                 :provides ["vega"]
+                 :global-exports {vega Vega}}
+                {:file "target/public/js-out/three.js"
+                 :provides ["threejs"]
+                 :global-exports {threejs THREE}}
+                {:file "target/public/js-out/semantic_ui.min.js"
+                 :provides ["semantic-ui-react"]
+                 :global-exports {semantic-ui-react SemanticUI}}
+                {:file "target/public/js-out/react.min.js"
+                 :provides ["react"
+                            "react-dom"
+                            "create-react-class"]
+                 :global-exports {react React
+                                  react-dom ReactDOM
+                                  create-react-class createReactClass}}]}
