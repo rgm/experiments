@@ -2,10 +2,14 @@
 {:tests [{:id :clj/unit
           :source-paths ["src/backend" "src/common"]
           :test-paths ["test/backend" "test/common"]}
-         ; {:id :cljs/unit
-         ;  :type :kaocha.type/cljs
-         ;  :source-paths ["src/frontend" "src/common"]
-         ;  :test-paths ["test/frontend" "test/common"]}
+         {:id :cljs/unit
+          :type :kaocha.type/cljs
+          :cljs/timeout 30000
+          :cljs/repl-env cljs.repl.node/repl-env ;; use node
+          ; :cljs/repl-env  cljs.repl.browser/repl-env ;; not working
+          :cljs/compiler-options {}
+          :source-paths ["src/frontend" "src/common"]
+          :test-paths ["test/frontend" "test/common"]}
          ]
  :plugins [
            ; :kaocha.plugin/cloverage

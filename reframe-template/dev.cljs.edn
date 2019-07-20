@@ -12,25 +12,4 @@
  :output-dir "target/public/cljs-out/dev"
  :output-to "target/public/cljs-out/dev-main.js"
  :language-out :ecmascript5 ;; see https://dev.clojure.org/jira/browse/CLJS-2376
- :foreign-libs [{:file "target/public/js-out/file_saver.js"
-                 :provides ["file-saver"]
-                 :global-exports {file-saver FileSaver}}
-                {:file "target/public/js-out/leaflet.js"
-                 :provides ["leaflet" "leaflet-draw"]
-                 :global-exports {leaflet Leaflet leaflet-draw LeafletDraw}}
-                {:file "target/public/js-out/three.js"
-                 :provides ["threejs"]
-                 :global-exports {threejs THREE}}
-                {:file "target/public/js-out/vega.js"
-                 :provides ["vega"]
-                 :global-exports {vega Vega}}
-                {:file "target/public/js-out/semantic_ui.js"
-                 :provides ["semantic-ui-react"]
-                 :global-exports {semantic-ui-react SemanticUI}}
-                {:file "target/public/js-out/react.js"
-                 :provides ["react"
-                            "react-dom"
-                            "create-react-class"]
-                 :global-exports {react React
-                                  react-dom ReactDOM
-                                  create-react-class createReactClass}}]}
+ }

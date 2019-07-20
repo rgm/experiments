@@ -17,32 +17,20 @@ test:
 	bin/kaocha
 
 .PHONY: repl
-repl: foreign-libs
+repl:
 	clojure -A:dev:frontend:test --main "rebel-readline.main"
 
 .PHONY: build
-build: figwheel-min badigeon-jar
+build: resources/public/min-main.js uberjar
 
-figwheel-min: foreign-libs
+resources/public/min-main.js:
 	clojure -A:frontend --main "figwheel.main" --build-once "min"
-	cp target/public/cljs-out/min-main.js dist/app.js
-	cp -r resources/public/css dist
 
-SHA1=$(shell git rev-parse --short HEAD)
-NOW=$(shell date +%Y%m%d)
-
-badigeon-jar:
-	clojure -A:build -m make-jar "$(NOW)-$(SHA1)"
-
-foreign-libs: target/public/js-out
-
-target/public/js-out: node_modules src/frontend/foreign_libs/**
-	yarn webpack --config dev.webpack.js
-	yarn webpack --config prd.webpack.js
-	@touch $@
+uberjar:
+	clojure -A:build
 
 node_modules: package.json
-	yarn install
+	npm install
 	@touch $@
 
 .PHONY: clean clobber

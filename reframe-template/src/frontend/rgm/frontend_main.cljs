@@ -3,12 +3,12 @@
   (:require
     [cljs.pprint :as pp]
     [cljs.spec.alpha :as s]
+    [cljsjs.semantic-ui-react :as sui]
     [day8.re-frame.http-fx]
     [devcards.core :refer [defcard-rg]]
     [expound.alpha :as expound]
     [re-frame.core :as re-frame]
     [reagent.core :as reagent]
-    [semantic-ui-react :as sui]
     [stylefy.core :as stylefy]))
 
 (s/def :app-db/click-count nat-int?)
