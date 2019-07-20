@@ -8,8 +8,7 @@
 
 ;; register integrant components
 (require
-  '[rgm.http]
-  '[rgm.nrepl])
+  '[rgm.http])
 
 (defn make-ig-system
   "reads an external edn config, resolves all aero and ig refs"

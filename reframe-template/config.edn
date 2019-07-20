@@ -1,2 +1,1 @@
-{:rgm/nrepl {:port #long #or [#env NREPL_PORT 0]}
- :rgm/http {:port #long #or [#env PORT 8080]}}
+{:rgm/http {:port #long #or [#env PORT 8080]}}

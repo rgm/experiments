@@ -5,6 +5,7 @@
     [integrant.core :as ig]
     [integrant.repl :refer [clear go halt prep reset reset-all]]
     [rgm.backend-main :as backend]
+    [rgm.nrepl]
     [taoensso.timbre :as timbre]))
 
 ;;; starting up figwheel manually so that we can piggieback into the browser
@@ -57,3 +58,6 @@
 (println "[dev] evaluate (go) to start integrant")
 (println "[dev] evaluate (halt) to stop integrant")
 (println "[dev] evaluate (reset) to reload changed namespaces and re-start integrant")
+
+;; start nrepl outside of integrant/repl; we never want to re-start it
+(ig/init-key :rgm/nrepl {})
