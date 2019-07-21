@@ -1,12 +1,12 @@
 (ns user
   (:require
-    [clojure.tools.namespace.repl :as tns]
-    [figwheel.main.api]
-    [integrant.core :as ig]
-    [integrant.repl :refer [clear go halt prep reset reset-all]]
-    [rgm.backend-main :as backend]
-    [rgm.nrepl]
-    [taoensso.timbre :as timbre]))
+   [clojure.tools.namespace.repl :as tns]
+   [figwheel.main.api]
+   [integrant.core :as ig]
+   [integrant.repl :refer [clear go halt prep reset reset-all]]
+   [rgm.backend-main :as backend]
+   [rgm.nrepl]
+   [taoensso.timbre :as timbre]))
 
 ;;; starting up figwheel manually so that we can piggieback into the browser
 ;;; from cljs files

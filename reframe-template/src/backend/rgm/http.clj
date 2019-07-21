@@ -1,11 +1,11 @@
 (ns rgm.http
   "plumbing for webserver (aleph for serving + reitit for routing)"
   (:require
-    [aleph.http]
-    [aleph.netty]
-    [integrant.core :as ig]
-    [reitit.ring :as ring]
-    [taoensso.timbre :as timbre]))
+   [aleph.http]
+   [aleph.netty]
+   [integrant.core :as ig]
+   [reitit.ring :as ring]
+   [taoensso.timbre :as timbre]))
 
 (defn log-request
   [req]
@@ -21,8 +21,12 @@
 
 (def app
   (ring/ring-handler
-    (ring/router
-      ["/" {:get dummy-handler}])))
+   (ring/router
+    ["/" {:get dummy-handler}])
+   (ring/routes
+    (ring/redirect-trailing-slash-handler)
+    (ring/create-resource-handler {:path "/"})
+    (ring/create-default-handler))))
 
 (defmethod ig/init-key :rgm/http
   [_ {:keys [port]}]
