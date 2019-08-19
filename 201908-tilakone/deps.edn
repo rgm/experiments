@@ -1,0 +1,3 @@
+{:deps
+  { metosin/tilakone {:mvn/version "0.0.5-SNAPSHOT"}}
+ }
