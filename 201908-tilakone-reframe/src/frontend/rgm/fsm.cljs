@@ -22,10 +22,12 @@
      {::tk/name :state/added-to-cycle
       ::tk/transitions [{::tk/on :signal/NOTIFY-COMPLIANT
                          ::tk/to :state/compliant
-                         ::tk/actions [:action/email-owner!]}]}
+                         ::tk/actions [:action/another-re-frame-thing
+                                       :action/email-owner!]}]}
      {::tk/name :state/compliant :opengb/end-state? true
       ::tk/transitions [{::tk/on :signal/WITHDRAW-COMPLIANCE
-                         ::tk/to :state/added-to-cycle}]}]
+                         ::tk/to :state/added-to-cycle
+                         ::tk/actions [:action/dispatch-something?]}]}]
     ::tk/action! (fn [{::tk/keys [action] :as fsm}]
                    (prn "THROW A RE-FRAME ACTION?" action)
                    fsm)}))
