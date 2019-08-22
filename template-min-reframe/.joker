@@ -1,0 +1,4 @@
+{:known-macros [devcards.core/defcard-rg
+                devcards.core/defcard]
+ :ignored-unused-namespaces [reagent.core
+                             sample.core]}
