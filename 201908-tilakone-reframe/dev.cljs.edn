@@ -1,5 +1,4 @@
-^{:css-dirs ["resources/public/css"]
-  :extra-main-files {:devcards {:main rgm.devcards-runner}}}
+^{:extra-main-files {:devcards {:main rgm.devcards-runner}}}
 {:main rgm.frontend-main
  :closure-defines {"re_frame.trace.trace_enabled_QMARK_" true
                    goog.DEBUG true}
