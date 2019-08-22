@@ -14,23 +14,26 @@
   ([]
    (simple-fsm :state/start))
   ([initial-state]
-   {::tk/state initial-state
-    ::tk/states
-    [{::tk/name :state/start
-      ::tk/transitions [{::tk/on :signal/ADD-TO-CYCLE
-                         ::tk/to :state/added-to-cycle}]}
-     {::tk/name :state/added-to-cycle
-      ::tk/transitions [{::tk/on :signal/NOTIFY-COMPLIANT
-                         ::tk/to :state/compliant
-                         ::tk/actions [:action/another-re-frame-thing
-                                       :action/email-owner!]}]}
-     {::tk/name :state/compliant :opengb/end-state? true
-      ::tk/transitions [{::tk/on :signal/WITHDRAW-COMPLIANCE
-                         ::tk/to :state/added-to-cycle
-                         ::tk/actions [:action/dispatch-something?]}]}]
-    ::tk/action! (fn [{::tk/keys [action] :as fsm}]
-                   (prn "THROW A RE-FRAME ACTION?" action)
-                   fsm)}))
+   (merge
+    ;; the serializable part ... this is just data
+    {::tk/state initial-state
+     ::tk/states
+     [{::tk/name :state/start
+       ::tk/transitions [{::tk/on :signal/ADD-TO-CYCLE
+                          ::tk/to :state/added-to-cycle}]}
+      {::tk/name :state/added-to-cycle
+       ::tk/transitions [{::tk/on :signal/NOTIFY-COMPLIANT
+                          ::tk/to :state/compliant
+                          ::tk/actions [:action/another-re-frame-thing
+                                        :action/email-owner!]}]}
+      {::tk/name :state/compliant :opengb/end-state? true
+       ::tk/transitions [{::tk/on :signal/WITHDRAW-COMPLIANCE
+                          ::tk/to :state/added-to-cycle
+                          ::tk/actions [:action/dispatch-something?]}]}]}
+    ;; the non-serializable bit, differs on frontend and backend
+    {::tk/action! (fn [{::tk/keys [action] :as fsm}]
+                    (prn "THROW A RE-FRAME ACTION?" action)
+                    fsm)})))
 
 (defn compliance-fsm
   ([]
