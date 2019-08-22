@@ -6,6 +6,7 @@
   cider/piggieback {:mvn/version "0.4.1"}
   com.taoensso/timbre {:mvn/version "RELEASE"}
   integrant {:mvn/version "0.7.0"}
+  metosin/tilakone {:mvn/version "LATEST"}
   nrepl/nrepl {:mvn/version "0.6.0"}
   org.clojure/clojure {:mvn/version "RELEASE"}
   org.clojure/core.match {:mvn/version "RELEASE"}
