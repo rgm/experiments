@@ -2,7 +2,7 @@ all: test
 
 .PHONY: repl
 repl:
-	clojure -A:dev:frontend:test -R:rgm/rebl-11 --main "rebel-readline.main"
+	clojure -A:dev:frontend:test --main "rebel-readline.main"
 
 .PHONY: clean clobber
 clean:
