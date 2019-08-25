@@ -1,7 +1,7 @@
 (ns user
   (:require
    [clojure.tools.namespace.repl :as tns]
-   [cognitect.rebl]
+   ; [cognitect.rebl]
    [figwheel.main.api]
    [integrant.core :as ig]
    [integrant.repl :refer [clear go halt prep reset reset-all]]
@@ -62,4 +62,4 @@
 (ig/init-key :rgm/nrepl {})
 
 ;; start rebl instance
-(cognitect.rebl/ui)
+; (cognitect.rebl/ui)
