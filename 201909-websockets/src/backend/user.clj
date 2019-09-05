@@ -33,7 +33,8 @@
 (defn make-ig-dev-system
   []
   {:rgm/figwheel {:build-id "dev"}
-   :rgm.core/handler {}
+   :rgm.core/channel-socket {}
+   :rgm.core/handler {:channel-socket (ig/ref :rgm.core/channel-socket)}
    :rgm.core/http-server {:port 8000 :handler (ig/ref :rgm.core/handler)}})
 
 (integrant.repl/set-prep! make-ig-dev-system)
