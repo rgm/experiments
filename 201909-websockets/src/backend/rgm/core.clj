@@ -24,23 +24,34 @@
    (get-sch-adapter)
    {:csrf-token-fn nil}))
 
+; (defmethod ig/init-key
+;   ::listener
+;   [_ {:keys [channel-socket]}]
+;   (timbre/info "starting listener")
+;   (let [receive-channel (:ch-recv channel-socket)]
+;     (async/go-loop
+;      []
+;      (let [msg (async/<! receive-channel)
+;            {:keys [client-id event data]} msg]
+;        (tap> ["GOT A MESSAGE" client-id event data]))
+;      (recur))))
+
+; (defmethod ig/halt-key!
+;   ::listener
+;   [_ ch]
+;   (timbre/info "stopping listener")
+;   (async/close! ch))
+
 (defmethod ig/init-key
   ::listener
   [_ {:keys [channel-socket]}]
-  (timbre/info "starting listener")
   (let [receive-channel (:ch-recv channel-socket)]
-    (async/go-loop
-     []
-     (let [msg (async/<! receive-channel)
-           {:keys [client-id event data]} msg]
-       (tap> ["GOT A MESSAGE" client-id event data]))
-     (recur))))
+    (sente/start-server-chsk-router! receive-channel prn)))
 
 (defmethod ig/halt-key!
   ::listener
-  [_ ch]
-  (timbre/info "stopping listener")
-  (async/close! ch))
+  [_ stop-fn]
+  (stop-fn))
 
 (defmethod ig/init-key
   ::handler
