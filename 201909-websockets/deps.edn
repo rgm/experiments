@@ -4,7 +4,8 @@
          "src/frontend"
          "target"]
  :deps
- {binaryage/devtools {:mvn/version "RELEASE"}
+ {aleph {:mvn/version "RELEASE"}
+  binaryage/devtools {:mvn/version "RELEASE"}
   cider/cider-nrepl {:mvn/version "0.21.1"}
   cider/piggieback {:mvn/version "0.4.1"}
   com.bhauman/figwheel-main {:mvn/version "RELEASE"}
@@ -18,6 +19,7 @@
   nrepl/nrepl {:mvn/version "0.6.0"}
   org.clojure/clojure {:mvn/version "RELEASE"}
   org.clojure/clojurescript {:mvn/version "RELEASE"}
+  org.clojure/core.async {:mvn/version "RELEASE"}
   org.clojure/core.match {:mvn/version "RELEASE"}
   org.clojure/spec.alpha {:mvn/version "RELEASE"}
   re-frame {:mvn/version "RELEASE"}

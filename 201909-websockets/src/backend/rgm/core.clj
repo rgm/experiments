@@ -1,8 +1,8 @@
 (ns rgm.core
   (:require
+   [aleph.http]
    [integrant.core :as ig]
-   [ring.util.response :as res]
-   [ring.adapter.jetty :as jetty]))
+   [ring.util.response :as res]))
 
 (defmethod ig/init-key
   ::handler
@@ -12,9 +12,9 @@
 (defmethod ig/init-key
   ::http-server
   [_ {:keys [port handler]}]
-  (jetty/run-jetty handler {:port port :join? false}))
+  (aleph.http/start-server handler {:port port}))
 
 (defmethod ig/halt-key!
   ::http-server
   [_ server]
-  (.stop server))
+  (.close ^java.io.Closeable server))
