@@ -1,64 +1,42 @@
 (ns rgm.frontend-main
   "functions for initializing the SPA"
   (:require
-   [cljs.pprint :as pp]
-   [devcards.core :refer [defcard-rg]]
-   [re-frame.core :as re-frame]
+   [re-frame.core :as rf :refer [dispatch subscribe]]
    [reagent.core :as reagent]))
 
-(def default-db {})
+(def default-db {:count 0})
 
-(re-frame/reg-event-db
- :initialize-db
- (fn [_ _] default-db))
+(rf/reg-event-db
+ ::initialize-db
+ (fn [_ _]
+   default-db))
 
-(re-frame/reg-sub
- :subs/current-count
- (fn [db _] (:click-count db)))
+(rf/reg-event-db
+ ::inc
+ (fn [db _]
+   (update db :count inc)))
 
-(defn to-english
-  "thanks https://gist.github.com/devn/1691304"
-  [n]
-  (pp/cl-format nil "~@(~@[~R~]~^ ~A.~)" n))
-
-(re-frame/reg-sub
- :subs/current-count-english
-  ;; demo of L3 stacking
-  ;; bit contrived since this will always re-run
- (fn [_ _] (re-frame/subscribe [:subs/current-count]))
- (fn [current-count _] (to-english current-count)))
-
-(re-frame/reg-event-db
- :evt/increment-count
- (fn [db [_ _]] (update db :click-count inc)))
-
-(defcard-rg another-button
-  "** some markdown documentation **"
-  (fn [data-atom owner]
-    [:button "hi"])
-  {:some "initial data"}
-  {:inspect-data true})
+(rf/reg-sub
+ ::count
+ (fn [db _] (:count db)))
 
 (defn Layout
   []
-  (let [current-count (re-frame/subscribe [:subs/current-count-english])]
+  (let [*count (subscribe [::count])]
     [:<>
-     [:h1 "re-frame example"]
-     [:button
-      {:on-click #(re-frame/dispatch [:evt/increment-count])}
-      "increment count"]
-     [:hr]
-     [:div
-      "current count is "
-      [:strong @current-count]]]))
+     [:h1 "websocket example"]
+     [:button {:on-click #(dispatch [::inc])} "increment"]
+     [:button {:on-click #(dispatch [::open-websocket])} "open websocket"]
+     [:button {:on-click #(dispatch [::close-websocket])} "close websocket"]
+     [:div "Count is: " [:strong @*count]]]))
 
 (defonce initializing? (atom true))
 
 (defn mount-root
   []
   (when @initializing?
-    (re-frame/clear-subscription-cache!)
-    (re-frame/dispatch-sync [:initialize-db])
+    (rf/clear-subscription-cache!)
+    (rf/dispatch-sync [::initialize-db])
     (reset! initializing? false))
   (reagent/render
    [Layout]
