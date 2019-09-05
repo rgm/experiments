@@ -2,7 +2,8 @@
   "functions for initializing the SPA"
   (:require
    [re-frame.core :as rf :refer [dispatch subscribe]]
-   [reagent.core :as reagent]))
+   [reagent.core :as reagent]
+   [taoensso.sente :as sente]))
 
 (def default-db {:count 0})
 
@@ -16,6 +17,23 @@
  (fn [db _]
    (update db :count inc)))
 
+(rf/reg-event-db
+ ::open-websocket
+ (fn [db _]
+   (let [chsk (sente/make-channel-socket-client!
+               "/chsk"
+               {:type :auto})]
+     ; (prn chsk)
+     (assoc db :channel-socket chsk))))
+
+(rf/reg-event-fx
+ ::ping
+ (fn [{:keys [db]} _]
+   (let [send-fn (get-in db [:channel-socket :send-fn])]
+     ; (prn (get-in db [:channel-socket]))
+     (send-fn [:something/foo {:data :bar}])
+     {})))
+
 (rf/reg-sub
  ::count
  (fn [db _] (:count db)))
@@ -28,6 +46,7 @@
      [:button {:on-click #(dispatch [::inc])} "increment"]
      [:button {:on-click #(dispatch [::open-websocket])} "open websocket"]
      [:button {:on-click #(dispatch [::close-websocket])} "close websocket"]
+     [:button {:on-click #(dispatch [::ping])} "ping websocket"]
      [:div "Count is: " [:strong @*count]]]))
 
 (defonce initializing? (atom true))
