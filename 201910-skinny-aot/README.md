@@ -1,5 +1,11 @@
 # 201910-skinny-aot
 
+## Usage
+
+`make && bin/run`
+
+## Background
+
 Trying to produce an executable JAR with *only* our clojure, AOT-compiled and
 relying on dependencies yanked down by Maven.
 
