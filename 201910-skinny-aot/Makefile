@@ -13,7 +13,7 @@ lib: pom.xml
 
 my-skinny.jar: classes pom.xml Manifest.txt
 	# jar cfm "$@" Manifest.txt -C classes rgm/ # doesn't seem to do anything
-	jar cf "$@" -C classes rgm/
+	jar cf "$@" resources -C classes rgm/
 
 clean:
 	rm -rf classes
