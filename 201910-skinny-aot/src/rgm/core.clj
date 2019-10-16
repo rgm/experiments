@@ -1,4 +1,5 @@
 (ns rgm.core
+  (:gen-class)
   (:require [taoensso.timbre :as timbre]))
 
 (defn -main
