@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-# clojure -A:build -m rgm.build
-# clojure -m mach.pack.alpha.skinny --no-libs --project-path "my-skinny.jar"
-clojure -m mach.pack.alpha.skinny --project-path "my-skinny.jar"

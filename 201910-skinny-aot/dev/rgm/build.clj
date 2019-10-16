@@ -10,7 +10,8 @@
 
 (defn -main
   []
-  (prn "foo"))
+  (compile 'rgm.core)
+  #_(prn "foo"))
 
 (comment
 
@@ -18,7 +19,8 @@
 
  (badigeon.clean/clean "target")
 
- (bundle (make-out-path 'lib "1.0.0"))
+ (bundle "target" {:excluded-libs ['rgm.core]})
+ (bundle (make-out-path 'lib nil))
  (c/compile 'rgm.core {:compile-path "target/classes"})
 
  (badigeon.bundle/bin-script "." 'rgm.core)
