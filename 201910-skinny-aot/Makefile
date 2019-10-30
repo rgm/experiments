@@ -18,7 +18,7 @@ my-skinny.jar: classes pom.xml Manifest.txt
 clean:
 	rm -rf classes
 
-clobber:
+clobber: clean
 	rm -rf lib my-skinny.jar
 
 pom.xml: deps.edn
