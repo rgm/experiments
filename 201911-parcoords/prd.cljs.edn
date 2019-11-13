@@ -1,0 +1,13 @@
+^{}
+{:main rgm.frontend-main
+ :closure-defines {"re_frame.trace.trace_enabled_QMARK_" false
+                   goog.DEBUG false}
+ :optimizations :advanced
+ :infer-externs true
+ :verbose true
+ :npm-deps false
+ :install-deps false
+ :output-dir "target/public/cljs-out/prd"
+ :output-to "resources/public/prd-main.js"
+ :language-out :ecmascript5 ;; see https://dev.clojure.org/jira/browse/CLJS-2376
+ }
