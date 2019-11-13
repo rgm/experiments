@@ -11,9 +11,8 @@ classes: deps.edn $(CLJ_SOURCES)
 lib: pom.xml
 	mvn dependency:copy-dependencies
 
-my-skinny.jar: classes pom.xml Manifest.txt
-	# jar cfm "$@" Manifest.txt -C classes rgm/ # doesn't seem to do anything
-	jar cf "$@" resources -C classes rgm/
+my-skinny.jar: classes pom.xml Manifest.mf
+	jar cfm "$@" Manifest.mf -C classes rgm/
 
 clean:
 	rm -rf classes
