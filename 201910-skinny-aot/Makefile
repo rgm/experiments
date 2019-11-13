@@ -19,7 +19,7 @@ clean:
 	rm -rf classes
 
 clobber: clean
-	rm -rf lib my-skinny.jar
+	rm -rf lib target my-skinny.jar
 
 pom.xml: deps.edn
 	clojure -Spom
