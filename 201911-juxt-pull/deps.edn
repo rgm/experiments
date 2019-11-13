@@ -1,0 +1,2 @@
+{:paths ["src"]
+ :deps {juxt/pull {:mvn/version "RELEASE"}}}
