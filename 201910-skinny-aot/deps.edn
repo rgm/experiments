@@ -4,9 +4,4 @@
   metosin/reitit {:mvn/version "0.3.10"}
   org.clojure/clojure {:mvn/version "1.10.1"}}
  :aliases
- {:build {:extra-paths ["dev"]
-          :extra-deps {badigeon/badigeon {:git/url "https://github.com/EwenG/badigeon.git"
-                                          :sha "c7588e6d2c66284dcda1a339adcba8cb9c74a8b0"
-                                          :tag "0.0.9"}
-                       pack/pack.alpha {:git/url "https://github.com/juxt/pack.alpha.git"
-                                        :sha "2769a6224bfb938e777906ea311b3daf7d2220f5"}}}}}
+ {:build {:extra-paths ["dev"]}}}
