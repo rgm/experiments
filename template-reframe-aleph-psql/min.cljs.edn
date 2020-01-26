@@ -1,0 +1,8 @@
+{:main rgm.browser
+ :closure-defines {"re_frame.trace.trace_enabled_QMARK_" false}
+ :optimizations :advanced
+ :infer-externs true
+ :npm-deps false
+ :verbose false
+ :output-dir "target/public/cljs-out/prd"
+ :output-to "resources/public/app.min.js"}

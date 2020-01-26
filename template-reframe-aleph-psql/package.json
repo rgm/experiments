@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "cssnano": "^4.1.10",
+    "postcss": "^7.0.21",
+    "postcss-cli": "^6.1.3",
+    "tailwindcss": "^1.2.0-canary.5",
+    "ws": "^7.2.1"
+  }
+}

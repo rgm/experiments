@@ -1,0 +1,13 @@
+# run test suite
+test:
+	bin/kaocha
+
+# start a repl
+repl:
+	clj -A:test:dev
+
+# rebuild clj-kondo cache
+lint-cache:
+	clj-kondo --lint $(clojure -Spath)
+
+# vim: ft=make

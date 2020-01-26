@@ -1,0 +1,1 @@
+web: java -cp target/app.jar clojure.main --main rgm.server

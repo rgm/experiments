@@ -1,0 +1,80 @@
+{:paths ["src/clj" "resources"]
+ :deps
+ {aero                            {:mvn/version "RELEASE"}
+  aleph                           {:mvn/version "RELEASE"}
+  binaryage/devtools              {:mvn/version "RELEASE"}
+  breaking-point                  {:mvn/version "RELEASE"}
+  buddy                           {:mvn/version "RELEASE"}
+  camel-snake-kebab               {:mvn/version "RELEASE"}
+  cider/cider-nrepl               {:mvn/version "RELEASE"}
+  cider/piggieback                {:mvn/version "RELEASE"}
+  cli-matic                       {:mvn/version "RELEASE"}
+  cljs-bean                       {:mvn/version "RELEASE"}
+  cljsjs/d3                       {:mvn/version "RELEASE"}
+  cljsjs/filesaverjs              {:mvn/version "RELEASE"}
+  clojure.jdbc/clojure.jdbc-c3p0  {:mvn/version "RELEASE"}
+  com.bhauman/figwheel-main       {:mvn/version "0.2.4-SNAPSHOT"}
+  com.bhauman/rebel-readline      {:mvn/version "RELEASE"}
+  com.bhauman/rebel-readline-cljs {:mvn/version "RELEASE"}
+  com.cognitect/transit-clj       {:mvn/version "RELEASE"}
+  com.layerware/hugsql            {:mvn/version "RELEASE"}
+  com.opengb/dram                 {:git/url "https://github.com/opengb/dram.git" :sha "391dc3201bfb1963ff3437fdebf8b1a73a3c3817"}
+  com.opengb/spork                {:local/root "/Users/rgm/Projects/opengb/spork"}
+  com.taoensso/tempura            {:mvn/version "RELEASE"}
+  com.taoensso/timbre             {:mvn/version "RELEASE"}
+  com.taoensso/tufte              {:mvn/version "RELEASE"}
+  day8.re-frame/async-flow-fx     {:mvn/version "RELEASE"}
+  day8.re-frame/http-fx           {:mvn/version "RELEASE"}
+  day8.re-frame/re-frame-10x      {:mvn/version "RELEASE"}
+  day8.re-frame/undo              {:mvn/version "RELEASE"}
+  devcards                        {:mvn/version "RELEASE"}
+  dk.ative/docjure                {:mvn/version "RELEASE"}
+  expound                         {:mvn/version "RELEASE"}
+  fork                            {:mvn/version "RELEASE"}
+  juxt/clip                       {:mvn/version "RELEASE"}
+  kixi/stats                      {:mvn/version "RELEASE"}
+  metosin/ring-http-response      {:mvn/version "RELEASE"}
+  metosin/muuntaja                {:mvn/version "RELEASE"}
+  metosin/reitit                  {:mvn/version "RELEASE"}
+  metosin/tilakone                {:mvn/version "RELEASE"}
+  nrepl                           {:mvn/version "RELEASE"}
+  org.clojure/clojure             {:mvn/version "RELEASE"}
+  org.clojure/clojurescript       {:mvn/version "RELEASE"}
+  org.clojure/core.async          {:mvn/version "RELEASE"}
+  org.clojure/core.match          {:mvn/version "RELEASE"}
+  org.clojure/core.memoize        {:mvn/version "RELEASE"}
+  org.clojure/data.csv            {:mvn/version "RELEASE"}
+  org.clojure/data.json           {:mvn/version "RELEASE"}
+  org.clojure/spec.alpha          {:mvn/version "RELEASE"}
+  org.clojure/test.check          {:mvn/version "RELEASE"}
+  org.clojure/tools.cli           {:mvn/version "RELEASE"}
+  org.clojure/tools.namespace     {:mvn/version "RELEASE"}
+  org.postgresql/postgresql       {:mvn/version "RELEASE"}
+  ragtime                         {:mvn/version "RELEASE"}
+  re-frame                        {:mvn/version "RELEASE"}
+  re-pollsive                     {:mvn/version "RELEASE"}
+  re-pressed                      {:mvn/version "RELEASE"}
+  reagent                         {:mvn/version "RELEASE"}
+  ring                            {:mvn/version "RELEASE"}
+  ring/ring-defaults              {:mvn/version "RELEASE"}
+  ring-cors                       {:mvn/version "RELEASE"}
+  riverford/compound              {:mvn/version "RELEASE"}
+  seancorfield/next.jdbc          {:mvn/version "RELEASE"}
+  selmer                          {:mvn/version "RELEASE"}
+  semantic-csv                    {:mvn/version "RELEASE"}}
+ :aliases
+ {:build
+  {:extra-deps
+   {uberdeps                      {:mvn/version "RELEASE"}}}
+  :dev
+  {:extra-paths ["dev"]
+   :main-opts ["--main" "rebel-readline.main"]}
+  :test
+  {:extra-paths ["test/clj"]
+   :extra-deps
+   {etaoin                        {:mvn/version "RELEASE"}
+    lambdaisland/kaocha           {:mvn/version "RELEASE"}
+    lambdaisland/kaocha-cljs      {:mvn/version "RELEASE"}
+    lambdaisland/kaocha-cloverage {:mvn/version "RELEASE"}
+    lambdaisland/kaocha-cucumber  {:mvn/version "RELEASE"}
+    orchestra                     {:mvn/version "RELEASE"}}}}}
