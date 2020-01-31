@@ -7,22 +7,24 @@
    [reitit.ring :as rr]
    [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
    [ring.util.http-response :as response]
-   [selmer.parser :as selmer]
+   [selmer.parser]
    [taoensso.timbre :as timbre]))
 
-(selmer/set-resource-path! (io/resource "html"))
+(selmer.parser/set-resource-path! "html/")
 
 (defn host-handler
-  [_]
-  (-> (selmer/render-file "home.html" {})
-      (response/ok)
-      (response/content-type "text/html")))
+  [profile]
+  (fn [_req]
+    (-> (selmer.parser/render-file "home.html" {:profile profile})
+        (response/ok)
+        (response/content-type "text/html; charset=utf-8"))))
 
-(def route-tree
-  [["/" {:get host-handler}]])
+(defn route-tree
+  [profile]
+  [["/" {:get (host-handler profile)}]])
 
 (defn make-handler
-  []
+  [route-tree]
   (rr/ring-handler
    (rr/router route-tree)
    (rr/routes (rr/redirect-trailing-slash-handler)
@@ -31,21 +33,21 @@
                {:not-found (constantly {:status 404})}))))
 
 (defn make-app
-  []
-  (-> (make-handler)
+  [route-tree]
+  (-> (make-handler route-tree)
       (wrap-format)
       (wrap-defaults site-defaults)))
 
-(def system-config
+(defn system-config
+  [profile]
   {:components
-   {:handler {:start make-app}
-    :http
-    {:start `(aleph.http/start-server (clip/ref :handler) {:port 8080})
-     :stop  `(.stop this)}}})
+   {:profile      {:start `(identity ~profile)}
+    :route-tree   {:start `(route-tree (clip/ref :profile))}
+    :ring-handler {:start `(make-app (clip/ref :route-tree))}
+    :http-server  {:start `(aleph.http/start-server (clip/ref :ring-handler) {:port 8080})}}})
 
 (defn -main
   [& _]
-  ; (timbre/info "starting http server")
-  ; (clip/start system-config)
-  ; @(promise)
-  )
+  (timbre/info "starting http server")
+  (clip/start (system-config :prd))
+  @(promise))
