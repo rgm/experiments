@@ -3,6 +3,7 @@
  {aero                            {:mvn/version "RELEASE"}
   aleph                           {:mvn/version "RELEASE"}
   binaryage/devtools              {:mvn/version "RELEASE"}
+  borkdude/carve                  {:git/url "https://github.com/borkdude/carve" :sha "8e219572f55485244fdc35ac605d19bc74e9be0e"}
   breaking-point                  {:mvn/version "RELEASE"}
   buddy                           {:mvn/version "RELEASE"}
   camel-snake-kebab               {:mvn/version "RELEASE"}

@@ -10,4 +10,8 @@ repl:
 lint-cache:
 	clj-kondo --lint $(clojure -Spath)
 
+# hunt down unused vars
+carve:
+	clojure --main carve.main --opts '{:paths ["src/clj" "test/clj"]}'
+
 # vim: ft=make
