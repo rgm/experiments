@@ -60,6 +60,7 @@
   ring/ring-defaults              {:mvn/version "RELEASE"}
   ring-cors                       {:mvn/version "RELEASE"}
   riverford/compound              {:mvn/version "RELEASE"}
+  say-cheez                       {:mvn/version "RELEASE"}
   seancorfield/next.jdbc          {:mvn/version "RELEASE"}
   selmer                          {:mvn/version "RELEASE"}
   semantic-csv                    {:mvn/version "RELEASE"}}

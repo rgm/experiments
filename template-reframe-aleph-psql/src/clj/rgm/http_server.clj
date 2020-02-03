@@ -1,10 +1,10 @@
-(ns rgm.server
+(ns rgm.http-server
   (:require
    [aleph.http]
-   [clojure.java.io :as io]
    [juxt.clip.core :as clip]
    [muuntaja.middleware :refer [wrap-format wrap-params]]
    [reitit.ring :as rr]
+   [rgm.system]
    [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
    [ring.util.http-response :as response]
    [selmer.parser]
@@ -38,16 +38,13 @@
       (wrap-format)
       (wrap-defaults site-defaults)))
 
-(defn system-config
-  [profile]
-  {:components
-   {:profile      {:start `(identity ~profile)}
-    :route-tree   {:start `(route-tree (clip/ref :profile))}
-    :ring-handler {:start `(make-app (clip/ref :route-tree))}
-    :http-server  {:start `(aleph.http/start-server (clip/ref :ring-handler) {:port 8080})}}})
-
-(defn -main
-  [& _]
-  (timbre/info "starting http server")
-  (clip/start (system-config :prd))
-  @(promise))
+(defn run-server
+  [args]
+  (let [profile (keyword (:profile args))
+        verbose? (:verbose args)]
+    (timbre/set-level! (if verbose? :debug :info))
+    (timbre/info "starting http server on port 8080")
+    (clip/start (rgm.system/system-config profile))
+    ;; block until interrupted; cli-matic and clip won't pause by themselves
+    ;; https://github.com/l3nz/cli-matic/issues/84
+    (promise)))

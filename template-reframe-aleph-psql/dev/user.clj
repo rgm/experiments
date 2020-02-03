@@ -4,13 +4,13 @@
    [figwheel.main.api :as fig]
    [juxt.clip.repl :as clip.repl]
    [rgm.nrepl]
-   [rgm.server]
+   [rgm.system]
    [taoensso.timbre :as timbre]))
 
 (timbre/set-level! :debug)
 (tns.repl/set-refresh-dirs "src/clj")
 (rgm.nrepl/start-server)
-(clip.repl/set-init! #(rgm.server/system-config :dev))
+(clip.repl/set-init! #(rgm.system/system-config :dev))
 
 (def go    clip.repl/start)
 (def halt  clip.repl/stop)
