@@ -20,5 +20,7 @@
 nashorn_code_cache
 node_modules
 out
+resources/public/app.min.js
+resources/public/screen.min.css
 tags
 target
