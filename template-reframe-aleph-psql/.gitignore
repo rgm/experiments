@@ -1,15 +1,16 @@
 *.log
-.cache
 *.swp
 */.clj-kondo/.cache
 *~
 .DS_Store
+.cache
 .cljs_nashorn_repl
 .cljs_node_repl
 .conjure.edn
 .cpcache
 .dir-locals.el
 .direnv
+.env
 .envrc
 .lein-repl-history
 .nrepl-port
