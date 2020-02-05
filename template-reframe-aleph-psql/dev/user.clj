@@ -10,7 +10,7 @@
 (timbre/set-level! :debug)
 (tns.repl/set-refresh-dirs "src/clj")
 (rgm.nrepl/start-server)
-(clip.repl/set-init! #(rgm.system/system-config :dev))
+(clip.repl/set-init! #(rgm.system/config :dev))
 
 (def go    clip.repl/start)
 (def halt  clip.repl/stop)
