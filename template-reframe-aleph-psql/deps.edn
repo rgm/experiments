@@ -18,6 +18,7 @@
   com.bhauman/rebel-readline      {:mvn/version "RELEASE"}
   com.bhauman/rebel-readline-cljs {:mvn/version "RELEASE"}
   com.cognitect/transit-clj       {:mvn/version "RELEASE"}
+  com.fzakaria/slf4j-timbre       {:mvn/version "RELEASE"} ;; for migratus
   com.layerware/hugsql            {:mvn/version "RELEASE"}
   com.opengb/dram                 {:git/url "https://github.com/opengb/dram.git" :sha "391dc3201bfb1963ff3437fdebf8b1a73a3c3817"}
   com.opengb/spork                {:local/root "/Users/rgm/Projects/opengb/spork" :exclusions [cljsjs/react-virtualized]}
@@ -38,6 +39,7 @@
   metosin/muuntaja                {:mvn/version "RELEASE"}
   metosin/reitit                  {:mvn/version "RELEASE"}
   metosin/tilakone                {:mvn/version "RELEASE"}
+  migratus                        {:mvn/version "RELEASE"}
   nrepl                           {:mvn/version "RELEASE"}
   org.clojure/clojure             {:mvn/version "RELEASE"}
   org.clojure/clojurescript       {:mvn/version "RELEASE"}
@@ -51,7 +53,6 @@
   org.clojure/tools.cli           {:mvn/version "RELEASE"}
   org.clojure/tools.namespace     {:mvn/version "RELEASE"}
   org.postgresql/postgresql       {:mvn/version "RELEASE"}
-  ragtime                         {:mvn/version "RELEASE"}
   re-frame                        {:mvn/version "RELEASE"}
   re-pollsive                     {:mvn/version "RELEASE"}
   re-pressed                      {:mvn/version "RELEASE"}
