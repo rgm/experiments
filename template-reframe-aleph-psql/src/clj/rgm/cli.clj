@@ -1,6 +1,7 @@
 (ns rgm.cli
   (:require
    [cli-matic.core :refer [run-cmd]]
+   [io.aviso.ansi :as ansi]
    [rgm.database]
    [rgm.http-server]
    [say-cheez.core :as sc]
@@ -9,13 +10,31 @@
 (def BUILD (sc/capture {:git (sc/git-info :all)
                         #_#_:runtime (sc/runtime :vm)})) ;; for display
 
+(defn ansi-appender
+  "ANSI-color appender for timbre, to make errors / warnings jump out"
+  [min-level]
+  {:enabled?   true
+   :min-level  min-level
+   :output-fn :inherit
+   :fn        (fn [data]
+                (let [{:keys [output_ level]} data
+                      formatted-output-str (force output_)
+                      color (case level
+                              :info  ansi/green
+                              :warn  ansi/bold-yellow
+                              :error ansi/bold-red
+                              ansi/white)]
+                  (println (color formatted-output-str))))})
+
 (defn make-runner
   "Process cli-matic global opts and calls the provided function `f` with the --profile."
   [f]
   (fn [opts]
     (let [profile (keyword (:profile opts))
-          verbose? (:verbose opts)]
-      (timbre/set-level! (if verbose? :debug :info))
+          verbose? (:verbose opts)
+          log-level (if verbose? :debug :info)]
+      (timbre/merge-config! {:appenders {:println (ansi-appender log-level)}})
+      (timbre/set-level! log-level)
       (f profile))))
 
 (def cli-config

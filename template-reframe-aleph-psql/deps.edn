@@ -33,6 +33,7 @@
   dk.ative/docjure                {:mvn/version "RELEASE"}
   expound                         {:mvn/version "RELEASE"}
   fork                            {:mvn/version "RELEASE"}
+  io.aviso/pretty                 {:mvn/version "RELEASE"}
   juxt/clip                       {:mvn/version "RELEASE"}
   kixi/stats                      {:mvn/version "RELEASE"}
   metosin/ring-http-response      {:mvn/version "RELEASE"}
