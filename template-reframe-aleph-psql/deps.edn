@@ -21,7 +21,7 @@
   com.fzakaria/slf4j-timbre       {:mvn/version "RELEASE"} ;; for migratus
   com.layerware/hugsql            {:mvn/version "RELEASE"}
   com.opengb/dram                 {:git/url "https://github.com/opengb/dram.git" :sha "391dc3201bfb1963ff3437fdebf8b1a73a3c3817"}
-  com.opengb/spork                {:git/url "https://github.com/opengb/spork.git" :exclusions [cljsjs/react-virtualized]}
+  com.opengb/spork                {:git/url "git@github.com:opengb/spork.git" :sha "56ff2e619a5dbe174c228c559150e5367464afbe" :exclusions [cljsjs/react-virtualized]}
   com.taoensso/tempura            {:mvn/version "RELEASE"}
   com.taoensso/timbre             {:mvn/version "RELEASE"}
   com.taoensso/tufte              {:mvn/version "RELEASE"}
