@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+cd `dirname $0`/.. # work from project root
+
+. bin/prelude.bash
+
+manual_step "install clojure from https://clojure.org/guides/getting_started#_clojure_installer_and_cli_tools"
+manual_step "install \`just\` from https://github.com/casey/just"
