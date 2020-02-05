@@ -20,7 +20,7 @@
         (response/content-type "text/html; charset=utf-8"))))
 
 (defn route-tree
-  [profile]
+  [profile _db-spec]
   [["/" {:get (host-handler profile)}]])
 
 (defn make-handler
@@ -39,12 +39,9 @@
       (wrap-defaults site-defaults)))
 
 (defn run-server
-  [args]
-  (let [profile (keyword (:profile args))
-        verbose? (:verbose args)]
-    (timbre/set-level! (if verbose? :debug :info))
-    (timbre/info "starting http server on port 8080")
-    (clip/start (rgm.system/system-config profile))
-    ;; block until interrupted; cli-matic and clip won't pause by themselves
-    ;; https://github.com/l3nz/cli-matic/issues/84
-    (promise)))
+  [profile]
+  (timbre/info "starting http server on port 8080")
+  (clip/start (rgm.system/config profile))
+  ;; block until interrupted; cli-matic and clip won't pause by themselves
+  ;; https://github.com/l3nz/cli-matic/issues/84
+  (promise))

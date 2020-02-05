@@ -1,1 +1,1 @@
-web: java -cp target/app.jar clojure.main -m rgm.cli run-server
+web: java -cp target/app.jar clojure.main -m rgm.cli start

@@ -1,5 +1,7 @@
-{:db-spec      {:start #env JDBC_DATABASE_URL}
- :route-tree   {:start (rgm.http-server/route-tree #profile {:dev :dev :prd :prd})}
- :ring-handler {:start (rgm.http-server/make-app (clip/ref :route-tree))}
- :http-server  {:start (aleph.http/start-server (clip/ref :ring-handler)
-                                                {:port #long #or [#env PORT 8080]})}}
+{:db-spec       #env JDBC_DATABASE_URL
+ :components
+ {:route-tree   {:start (rgm.http-server/route-tree #profile {:dev :dev :prd :prd}
+                                                    #ref [:db-spec])}
+  :ring-handler {:start (rgm.http-server/make-app (clip/ref :route-tree))}
+  :http-server  {:start (aleph.http/start-server (clip/ref :ring-handler)
+                                                 {:port #long #or [#env PORT 8080]})}}}

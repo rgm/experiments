@@ -5,8 +5,12 @@
    [clojure.java.io :as io]
    [juxt.clip.core]))
 
-(defn system-config
+(defn config
   "Generate a system map"
   [profile]
-  {:components (aero.core/read-config (io/resource "system.edn")
-                                      {:profile profile})})
+  (aero.core/read-config (io/resource "system.edn")
+                         {:profile profile}))
+
+(defn db-spec
+  [config]
+  (get config :db-spec))
