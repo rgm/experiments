@@ -1,0 +1,31 @@
+#kaocha/v1
+{:tests  [{:id                      :clj/unit
+           :source-paths            ["src/clj"]
+           :test-paths              ["test/clj"]}
+
+          ; {:id                      :cljs/unit-browser
+          ;  :type                    :kaocha.type/cljs
+          ;  :source-paths            ["src/clj"]
+          ;  :test-paths              ["test/clj"]
+          ;  :cljs/repl-env           cljs.repl.browser/repl-env
+          ;  :cljs/compiler-options   {}
+          ;  :cljs/timeout            20000}
+
+          {:id                      :cljs/unit-nodejs
+           :type                    :kaocha.type/cljs
+           :source-paths            ["src/clj"]
+           :test-paths              ["test/clj"]
+           :cljs/repl-env           cljs.repl.node/repl-env
+           :cljs/compiler-options   {}
+           :cljs/timeout            20000}
+
+          {:id                      :acceptance
+           :type                    :kaocha.type/cucumber
+           :test-paths              ["features"]
+           :kaocha.filter/skip-meta [:kaocha/skip]
+           :cucumber/glue-paths     ["test/clj/rgm/cucumber"]
+           :cucumber/locale         "en-CA"}]
+
+ :plugins [:kaocha.plugin/hooks
+           :kaocha.plugin/cloverage
+           :kaocha.plugin/notifier]}

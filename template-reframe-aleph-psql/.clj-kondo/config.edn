@@ -1,0 +1,4 @@
+{:linters
+{:unresolved-symbol {:exclude [(devcards.core/defcard-rg)
+                               (lambdaisland.cucumber.dsl/Then)
+                               (lambdaisland.cucumber.dsl/When)]}} }
