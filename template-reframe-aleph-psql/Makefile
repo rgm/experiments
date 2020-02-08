@@ -8,10 +8,14 @@ CSS_SOURCES=$(shell  find src/css -name "*.css")
 INTERMEDIATE_BUILD_PRODUCTS=resources/public/screen.min.css resources/public/app.min.js
 
 target/app.jar: deps.edn $(CLJ_SOURCES) $(CLJC_SOURCES) $(INTERMEDIATE_BUILD_PRODUCTS)
-	clojure -A:build --main uberdeps.uberjar --target "$@"
+	clojure -A:build --main uberdeps.uberjar --target $@
 
-resources/public/screen.min.css: node_modules src/css/postcss.config.js $(CSS_SOURCES)
-	npx postcss -c styles/postcss.config.js -o "$@" $(CSS_SOURCES)
+# culls unused tailwind styles based on app bundle + html templates
+resources/public/screen.min.css: node_modules target/screen.min.css
+	npx purgecss -c src/css/purgecss.config.js -o resources/public
+
+target/screen.min.css: src/css/postcss.config.js resources/public/app.min.js $(CSS_SOURCES)
+	npx postcss -c src/css/postcss.config.js -o $@ $(CSS_SOURCES)
 
 resources/public/app.min.js: deps.edn $(CLJS_SOURCES) $(CLJC_SOURCES)
 	clojure --main figwheel.main --build-once min
@@ -19,6 +23,10 @@ resources/public/app.min.js: deps.edn $(CLJS_SOURCES) $(CLJC_SOURCES)
 node_modules: package.json
 	npm install
 	@touch node_modules
+
+target:
+	mkdir -p target
+	@touch target
 
 TMP_FILES=.cljs_nashorn_repl \
 					.cljs_node_repl \
