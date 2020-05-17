@@ -2,6 +2,9 @@ repl:
 	clojure -A:test -m rebel-readline.main
 .PHONY: repl
 
+bundle:
+	clj -m cljs.main -co bundle.cljs.edn -v -c -r
+
 clean:
 	rm -rf target out pom.xml
 	rm -rf nashorn_code_cache .cljs_nashorn_repl .cljs_node_repl
