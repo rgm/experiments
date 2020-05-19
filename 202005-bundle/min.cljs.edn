@@ -1,0 +1,9 @@
+{:main rgm.frontend-main
+ :closure-defines {cljs.core/*global* "window"}
+ :optimizations :advanced
+ :verbose true
+ :target :bundle
+ :bundle-cmd {:none ["npx" "webpack" "--mode=development"]
+              :default ["npx" "webpack"]}
+ :output-to "out/index.js"
+ :output-dir "out"}

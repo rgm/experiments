@@ -1,0 +1,8 @@
+{:main rgm.frontend-main
+ :closure-defines {cljs.core/*global* "window"}
+ :preloads [day8.re-frame-10x.preload devtools.preload]
+ :target :bundle
+ :bundle-cmd {:none ["npx" "webpack" "--mode=development"]
+              :default ["npx" "webpack"]}
+ :output-to "out/index.js"
+ :output-dir "out"}
