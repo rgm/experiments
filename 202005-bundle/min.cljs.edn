@@ -1,6 +1,7 @@
 {:main rgm.frontend-main
  :closure-defines {cljs.core/*global* "window"}
- :preloads [day8.re-frame-10x.preload devtools.preload]
+ :optimizations :advanced
+ :verbose true
  :target :bundle
  :bundle-cmd {:none ["npx" "webpack" "--mode=development"]
               :default ["npx" "webpack"]}

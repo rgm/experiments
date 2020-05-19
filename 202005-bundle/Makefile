@@ -5,6 +5,15 @@ repl:
 bundle:
 	clj -m cljs.main -co bundle.cljs.edn -v -c -r
 
+min:
+	clj -m figwheel.main -bo min
+
+rollup:
+	npx rollup -c
+
+webpack:
+	npx webpack
+
 clean:
 	rm -rf target out pom.xml
 	rm -rf nashorn_code_cache .cljs_nashorn_repl .cljs_node_repl

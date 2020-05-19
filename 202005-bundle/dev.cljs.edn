@@ -1,8 +1,12 @@
 ^{}
 {:main rgm.frontend-main
  :closure-defines {"re_frame.trace.trace_enabled_QMARK_" true
-                   goog.DEBUG true}
+                   goog.DEBUG true
+                   ; cljs.core/*global* "window"
+                   }
  :preloads [day8.re-frame-10x.preload devtools.preload]
+ :target :bundle
+ :bundle-cmd {:none ["npx" "webpack" "--mode=development"]}
  :output-dir "target/public/cljs-out/dev"
  :output-to "target/public/cljs-out/dev-main.js"
  :language-out :ecmascript5 ;; see https://dev.clojure.org/jira/browse/CLJS-2376
