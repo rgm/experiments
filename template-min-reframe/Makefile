@@ -1,10 +1,7 @@
-all: test
-
-.PHONY: repl
 repl:
-	clojure -A:dev:frontend:test -R:rgm/rebl-11 --main "rebel-readline.main"
+	clojure -m rebel-readline.main
+.PHONY: repl
 
-.PHONY: clean clobber
 clean:
 	rm -rf target out pom.xml
 	rm -rf nashorn_code_cache .cljs_nashorn_repl .cljs_node_repl
@@ -14,6 +11,7 @@ clean:
 
 clobber: clean
 	rm -rf tmp node_modules .cpcache .rebel_readline_history
+.PHONY: clean clobber
 
 # utility tasks
 

@@ -1,6 +1,6 @@
 (ns rgm.devcards-runner
-  (:require [devcards.core]
+  (:require #_[devcards.core]
             [reagent.core]))
 
-(devcards.core/start-devcard-ui!)
+#_(devcards.core/start-devcard-ui!)
 

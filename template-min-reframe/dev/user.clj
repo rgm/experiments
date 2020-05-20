@@ -1,7 +1,7 @@
 (ns user
   (:require
    [clojure.tools.namespace.repl :as tns]
-   [cognitect.rebl]
+   ; [cognitect.rebl]
    [figwheel.main.api]
    [integrant.core :as ig]
    [integrant.repl :refer [clear go halt prep reset reset-all]]
@@ -13,9 +13,8 @@
 ;;;
 ;;; vim + fireplace.vim
 ;;; :Piggieback (figwheel.main.api/repl-env "dev")
-;;;
-;;; vscode + calva
-;;; TODO - where's the doc for this??
+;;; vim + conjure.vim
+;;; :ConjurePiggieback (figwheel.main.api/repl-env "dev")
 
 (timbre/set-level! :debug)
 
@@ -62,4 +61,4 @@
 (ig/init-key :rgm/nrepl {})
 
 ;; start rebl instance
-(cognitect.rebl/ui)
+; (cognitect.rebl/ui)

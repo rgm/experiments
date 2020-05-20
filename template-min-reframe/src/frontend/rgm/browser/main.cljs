@@ -1,10 +1,10 @@
-(ns rgm.frontend-main
+(ns rgm.browser.main
   "functions for initializing the SPA"
   (:require
    [cljs.pprint :as pp]
-   [devcards.core :refer [defcard-rg]]
+   ; [devcards.core :refer [defcard-rg]]
    [re-frame.core :as re-frame]
-   [reagent.core :as reagent]))
+   [reagent.dom :as rdom]))
 
 (def default-db {})
 
@@ -32,18 +32,18 @@
  :evt/increment-count
  (fn [db [_ _]] (update db :click-count inc)))
 
-(defcard-rg another-button
-  "** some markdown documentation **"
-  (fn [data-atom owner]
-    [:button "hi"])
-  {:some "initial data"}
-  {:inspect-data true})
+; (defcard-rg another-button
+;   "** some markdown documentation **"
+;   (fn [data-atom owner]
+;     [:button "hi"])
+;   {:some "initial data"}
+;   {:inspect-data true})
 
 (defn Layout
   []
   (let [current-count (re-frame/subscribe [:subs/current-count-english])]
     [:<>
-     [:h1 "re-frame example"]
+     [:h1 "template min reframe"]
      [:button
       {:on-click #(re-frame/dispatch [:evt/increment-count])}
       "increment count"]
@@ -60,7 +60,7 @@
     (re-frame/clear-subscription-cache!)
     (re-frame/dispatch-sync [:initialize-db])
     (reset! initializing? false))
-  (reagent/render
+  (rdom/render
    [Layout]
    (.getElementById js/document "app")))
 
