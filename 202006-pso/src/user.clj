@@ -6,7 +6,9 @@
   (:require
    [clojure.test :as t :refer [deftest testing is]]
    [taoensso.timbre :as timbre]
-   [taoensso.tufte :as tufte :refer [defnp p]]))
+   [taoensso.tufte :as tufte :refer [profile p]]))
+
+(tufte/add-basic-println-handler! {})
 
 ;; * Test fn
 
@@ -21,45 +23,34 @@
   (z KNOWN-OPTIMUM) ;; => -0.4288819424803531
   )
 
-;; * Cost function
-
-(defn better?
-  "Is a 'better' than b? Cost function is just taking minimum."
-  [f position-a position-b]
-  (< (f position-a) (f position-b)))
-
 ;; * Particles and swarms
 
+(defn make-pos [] {:x (rand) :y (rand)})
+
 (defn make-particle
-  []
-  {:x (rand) :y (rand)})
+  "Supply a bigger-than-everything empty-pos to ensure first pos is best.
+   (or, duh, init best-pos to current-pos)."
+  ([] (make-particle (make-pos)))
+  ([empty-pos] {:current-pos      (make-pos)
+                :current-velocity (make-pos)
+                :best-pos         empty-pos}))
 
 (defn make-swarm
-  [n]
-  (->> (repeat make-particle) (take n) (map apply) (set)))
+  [empty-pos n]
+  (repeatedly n #(make-particle empty-pos)))
 
 (comment
-  (make-particle)
-  (make-swarm 5)
-  (make-swarm 100))
+  (make-particle))
 
 (def *swarm-best-position (atom {:x 0 :y 0}))
 
-(def *swarm (atom #{}))
-
 ;; * vector arithmetic
 
-(defn v+
-  [& vs]
-  (reduce (fn [sum v] (merge-with + sum v)) {:x 0 :y 0} vs))
+(defn v+ [& vs] (reduce (fn [sum v] (merge-with + sum v)) {:x 0 :y 0} vs))
 
-(defn v-
-  [v1 v2]
-  (merge-with - v1 v2))
+(defn v- [v1 v2] (merge-with - v1 v2))
 
-(defn v*
-  [scalar v]
-  (reduce (fn [v' [k v]] (assoc v' k (* scalar v))) {} v))
+(defn v* [scalar v] (reduce (fn [v' [k v]] (assoc v' k (* scalar v))) {} v))
 
 (comment
   (v+ {:x 1 :y 2} {:x 3 :y 4})
@@ -68,50 +59,124 @@
 
 ;; ** Algorithm
 
-(defn inertia
-  "in [0, ]. Make big for better exploration. Can reduce linearly over epochs
-   0.9 -> 0.2 for convergence."
-  ([] 0.6)
-  ([max-epochs epoch] 0.9))
-
-(def COGNITIVE-COEFFICIENT
-  "attraction to particle's own memory"
-  2)
-
-(def SOCIAL-COEFFICIENT
-  "exchange of info between particles"
-  2)
+(def make-random
+  "re-bind for testability."
+  rand)
 
 (defn get-next-velocity
   "https://youtu.be/JhgDMAm-imI?t=572"
-  [{:coefficient/keys [inertial cognitive social]}
-   {:pos/keys [best-swarm best-particle]}
+  [{:keys [inertial-coeff cognitive-coeff social-coeff]}
+   {best-swarm :best/swarm best-particle :best/particle}
    current-velocity current-position]
-  (let [r1 (rand), r2 (rand), r3 (rand)]
-    (v+ (v* (* r1 inertial)  current-velocity)
-        (v* (* r2 cognitive) (v- best-particle current-position))
-        (v* (* r3 social)    (v- best-swarm current-position)))))
+  (let [r1 (make-random), r2 (make-random), r3 (make-random)]
+    (v+ (v* (* r1 inertial-coeff)  current-velocity)
+        (v* (* r2 cognitive-coeff) (v- best-particle current-position))
+        (v* (* r3 social-coeff)    (v- best-swarm current-position)))))
+
+(defn get-next-position
+  [pos velocity]
+  (v+ pos velocity))
 
 (comment
-  (get-next-velocity {:coefficient/inertial 0.9
-                      :coefficient/cognitive 2
-                      :coefficient/social 2}
-                     {:pos/best-swarm {:x 0 :y 0}
-                      :pos/best-particle {:x 0 :y 0}}
+  (get-next-velocity {:inertial-coeff 0.9
+                      :cognitive-coeff 2
+                      :social-coeff 2}
+                     {:best-pos-swarm {:x 0 :y 0}
+                      :best-pos-particle {:x 0 :y 0}}
                      {:x 1 :y 1}
                      {:x 1 :y 1}))
 
+;; * Swarm algorithm
+
+(defn advance-swarm
+  [inertial-coeff cognitive-coeff social-coeff 
+   arbiter f
+   swarm]
+  swarm)
+
+(defn get-best-position
+  [arbiter f best-pos particles]
+  (reduce (fn [best-pos particle]
+            (let [candidate-pos  (:current-pos particle)
+                  best-cost      (timbre/spy :info (f best-pos))
+                  candidate-cost (timbre/spy :info (f candidate-pos))]
+              (if (= candidate-cost (arbiter candidate-cost best-cost))
+                candidate-pos
+                best-pos)))
+          best-pos particles))
+
 (defn find-optimum
-  "https://youtu.be/JhgDMAm-imI?t=777"
-  [params f])
+  "
+  huh, arbiter + empty-pos turn out to be a monoid.
+   https://youtu.be/JhgDMAm-imI?t=777"
+  [params f]
+  (let [{:keys [cognitive-coeff social-coeff inertial-coeff-fn
+                arbiter empty-pos epochs n-particles]} params]
+    (loop [current-epoch  epochs
+           swarm          (make-swarm empty-pos n-particles)
+           best-swarm-pos empty-pos]
+      (if (<= current-epoch 0)
+        best-swarm-pos
+        (let [inertial-coeff (inertial-coeff-fn epochs current-epoch)
+              _ (prn swarm)
+              swarm' (advance-swarm inertial-coeff cognitive-coeff social-coeff
+                                    arbiter f
+                                    swarm)
+              best-swarm-pos' (get-best-position arbiter f best-swarm-pos swarm')]
+          (recur (dec current-epoch) swarm' best-swarm-pos'))))))
+
+(defn constant-inertia
+  []
+  0.9)
+
+(defn declining-inertia
+  "in [0, ]. Make big for better exploration. Can reduce linearly over epochs
+   0.9 -> 0.2 for convergence."
+  [max-epochs epoch]
+  0.9)
+
+(defn safe-min
+  "JIC the infinity start plus objective fn makes things go nuts."
+  [a b]
+  (cond
+    (Double/isNaN a) b
+    (Double/isNaN b) a
+    :else (min a b)))
+
+(deftest safe-min-test
+  (is (= 2 (safe-min ##NaN 2)))
+  (is (= 2 (safe-min 2 ##NaN)))
+  (is (= ##NaN (safe-min ##NaN ##NaN))))
+
+(deftest get-best-position-test
+  (timbre/set-level! :warn)
+  (let [f (fn [{:keys [x y]}] (+ x y))
+        particles [{:current-pos {:x 0.23, :y 0.53}}
+                   {:current-pos {:x 0.17, :y 0.11}}
+                   {:current-pos {:x 0.26, :y 0.04}}]]
+    (is (= {:x 0.17, :y 0.11} (get-best-position min f {:x Double/POSITIVE_INFINITY,
+                                                        :y Double/POSITIVE_INFINITY}
+                                                 particles)))
+    (is (= {:x 0.23, :y 0.53} (get-best-position max f {:x Double/NEGATIVE_INFINITY
+                                                        :y Double/NEGATIVE_INFINITY}
+                                                 particles)))
+    (is (= {:x 0.17, :y 0.11} (get-best-position min f {:x ##Inf :y ##Inf} particles)))
+    (is (= {:x 0.17, :y 0.11} (get-best-position safe-min f {:x ##NaN :y ##NaN} particles)))))
 
 (deftest find-optimum-test
-  (let [search-params {:max-epochs 5000
-                       :cognitive-coeff 2
-                       :social-coeff 2
-                       :swarm-size 10
-                       :inertia-fn inertia}
-        function (fn [{:keys [x y]}]
-                   (* x (Math/exp (- (+ (* x x) (* y y)))))) ]
+  (timbre/set-level! :info)
+  (let [search-params {:epochs            3
+                       :n-particles       3 ;; 2x the variables?
+                       :cognitive-coeff   2 ;; attraction to particle's own best memory
+                       :social-coeff      2 ;; exchange of info about swarm best between particles
+                       :inertial-coeff-fn declining-inertia
+                       :arbiter           safe-min ;; arbiter fn returns the 'best' from 2+ positions; aka. mappend
+                       :empty-pos         {:x ##Inf :y ##Inf}} ;; aka. mempty
+        function (fn [{:keys [x y] :as pos}] (timbre/info pos) (* x (Math/exp (- (+ (* x x) (* y y))))))]
     (is (= {:x -0.7071068, :y 0.0}
-           (find-optimum search-params function)))))
+           (profile {} (find-optimum search-params function))))))
+
+(comment
+  (z {:x 1 :y 2})
+  (z {:x ##Inf :y ##Inf})
+  )
