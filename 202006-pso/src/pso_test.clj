@@ -53,22 +53,21 @@
       (is (= {:x 1.0 :y 1.0} actual)))))
 
 (deftest advance-swarm-test
-  ()
-  (let [arbiter             min
-        f                   pso/parabowl
-        swarm               [{:current-pos      {:x  2 :y  2}
-                              :current-velocity {:x -1 :y -1}
-                              :best-pos         {:x  2 :y  1}}]
-        best-swarm-pos                          {:x  1 :y  2}
-        expected            [{:current-pos      {:x  0 :y  0}
-                              :current-velocity {:x -2 :y -2}
-                              :best-pos         {:x  0 :y  0}}]
-        actual              (binding [pso/*make-random* (constantly 1)]
-                              (pso/advance-swarm 1 1 1
+  (binding [pso/*make-random* (constantly 1)]
+    (let [arbiter             min
+          f                   pso/parabowl
+          swarm               [{:current-pos      {:x  2 :y  2}
+                                :current-velocity {:x -1 :y -1}
+                                :best-pos         {:x  2 :y  1}}]
+          best-swarm-pos                          {:x  1 :y  2}
+          expected            [{:current-pos      {:x  0 :y  0}
+                                :current-velocity {:x -2 :y -2}
+                                :best-pos         {:x  0 :y  0}}]
+          actual              (pso/advance-swarm 1 1 1
                                                  best-swarm-pos
                                                  arbiter f
-                                                 swarm))]
-    (is (= expected actual))))
+                                                 swarm)]
+      (is (= expected actual)))))
 
 (deftest safe-min-test
   (is (= 2 (pso/safe-min ##NaN 2)))
