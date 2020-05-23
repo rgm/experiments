@@ -110,15 +110,7 @@
   [inertial-coeff cognitive-coeff social-coeff best-swarm-pos
    arbiter f
    swarm]
-  (->> swarm
-       (map #(update-velocity inertial-coeff cognitive-coeff social-coeff
-                              best-swarm-pos
-                              %))
-       (map update-position)
-       (map #(update-best-position arbiter f
-                                   %))
-       )
-  #_(map (comp (partial update-best-position arbiter f)
+  (map (comp (partial update-best-position arbiter f)
              update-position
              (partial update-velocity inertial-coeff cognitive-coeff social-coeff
                       best-swarm-pos))
