@@ -105,27 +105,18 @@
       (assoc particle :best-pos (:current-pos particle))
       particle)))
 
-(defn spy
-  [note x]
-  ; (prn note x)
-  x)
-
 (defn advance-swarm
   "Update velocities, then positions, then designate a new best."
   [inertial-coeff cognitive-coeff social-coeff best-swarm-pos
    arbiter f
    swarm]
   (->> swarm
-       (spy "swarm")
        (map #(update-velocity inertial-coeff cognitive-coeff social-coeff
                               best-swarm-pos
                               %))
-       (spy "vel")
        (map update-position)
-       (spy "pos")
        (map #(update-best-position arbiter f
                                    %))
-       (spy "best")
        )
   #_(map (comp (partial update-best-position arbiter f)
              update-position
