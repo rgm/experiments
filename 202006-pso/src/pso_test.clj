@@ -7,6 +7,7 @@
 
 (tufte/add-basic-println-handler! {})
 (timbre/set-level! :warn)
+; (timbre/set-level! :debug)
 
 (deftest get-next-velocity-test
   (testing "velocity+inertia only"
@@ -90,7 +91,8 @@
 
 (defn equalish [a b] (< (- (Math/abs a) (Math/abs b)) 1e-4))
 
-(defn position-equalish [a b] (and (timbre/spy :info (equalish (:x a) (:x b))) (timbre/spy :info (equalish (:y a) (:y b)))))
+(defn position-equalish [a b] (and (equalish (:x a) (:x b))
+                                   (equalish (:y a) (:y b))))
 
 (deftest declining-inertia-test
   (is (equalish 0.9  (pso/declining-inertia 10 0)))
@@ -115,6 +117,10 @@
     (is (position-equalish expected actual))))
 
 (comment
+  (pso/z {:x 29.44439248206086, :y 32.17920176497843}) ;; => 0 ... came from a failing test
+  ;; ... seems to be a cliff where fn falls to 0 and particles just skate
+  ;; around directionlessly til epochs expire, depending on initial conditions
+  (pso/z {:x 28, :y 33}) ;; => 0
   (pso/v+ {:x 1 :y 2} {:x 3 :y 4})
   (pso/v- {:x 1 :y 1} {:x 1 :y 1})
   (pso/v* 12 {:x 1 :y 12}))
