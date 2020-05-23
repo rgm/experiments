@@ -6,8 +6,8 @@
    [taoensso.tufte :as tufte :refer [p profile]]))
 
 (tufte/add-basic-println-handler! {})
-(timbre/set-level! :warn)
-; (timbre/set-level! :debug)
+; (timbre/set-level! :warn)
+(timbre/set-level! :debug)
 
 (deftest get-next-velocity-test
   (testing "velocity+inertia only"
@@ -100,11 +100,11 @@
   (is (equalish 0.2  (pso/declining-inertia 10 10))))
 
 (deftest find-optimum-test
-  (let [search-params {:epochs            100
+  (let [search-params {:n-epochs          100
                        :n-particles       1000
+                       :inertial-coeff-fn pso/declining-inertia
                        :cognitive-coeff   2
                        :social-coeff      2
-                       :inertial-coeff-fn pso/declining-inertia
                        :arbiter           pso/safe-min
                        :empty-pos         {:x 1 :y 1}}
         cost-surface  (fn [{:keys [x y]}]
