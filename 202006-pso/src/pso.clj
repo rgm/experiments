@@ -5,7 +5,7 @@
    "
   (:require
    [taoensso.timbre :as timbre]
-   [taoensso.tufte :as tufte :refer [profile p]]))
+   [taoensso.tufte :as tufte :refer [defnp p]]))
 
 ;; * Test fns
 
@@ -84,7 +84,7 @@
                 best-pos)))
           best-pos particles))
 
-(defn update-velocity
+(defnp update-velocity
   [inertial-coeff cognitive-coeff social-coeff best-swarm-pos
    particle]
   (let [next-velocity (get-next-velocity
@@ -92,12 +92,12 @@
                        best-swarm-pos particle)]
     (assoc particle :current-velocity next-velocity)))
 
-(defn update-position
+(defnp update-position
   [particle]
   (let [velocity (:current-velocity particle)]
     (update particle :current-pos (partial v+ velocity))))
 
-(defn update-best-position
+(defnp update-best-position
   [arbiter f particle]
   (let [best-cost (f (:best-pos particle))
         current-cost (f (:current-pos particle))]
