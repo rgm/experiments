@@ -39,17 +39,19 @@
 (defn make-pos [] {:x (rand) :y (rand)})
 
 (defn make-particle
-  "Supply a bigger-than-everything empty-pos to ensure first pos is best.
-   (or, duh, init best-pos to current-pos and avoid the ##Inf messiness)."
-  ([] (make-particle (make-pos)))
-  ([empty-pos] {:current-pos      (make-pos)
-                :current-velocity {:x 0 :y 0}
-                :best-pos         empty-pos}))
+  "A particle is just a map with velocity, position and a memory of its 'best'
+   position."
+  []
+  (let [initial-pos      (make-pos)
+        initial-velocity (make-pos)]
+    {:current-pos      initial-pos
+     :current-velocity initial-velocity
+     :best-pos         initial-pos}))
 
 (defn make-swarm
   "A swarm is just a coll of particles."
-  [empty-pos n]
-  (repeatedly n #(make-particle empty-pos)))
+  [n]
+  (repeatedly n make-particle))
 
 ;; * vector arithmetic
 
@@ -80,12 +82,15 @@
 (defn get-best-position
   [arbiter f best-pos particles]
   (reduce (fn [best-pos particle]
-            (let [candidate-pos  (:current-pos particle)
-                  best-cost      (f best-pos)
-                  candidate-cost (f candidate-pos)]
-              (if (= candidate-cost (arbiter candidate-cost best-cost))
-                candidate-pos
-                best-pos)))
+            (prn "best is" best-pos)
+            (if (nil? best-pos)
+              particle
+              (let [candidate-pos  (timbre/spy :info (:current-pos particle))
+                    best-cost      (f best-pos)
+                    candidate-cost (f candidate-pos)]
+                (if (= candidate-cost (arbiter candidate-cost best-cost))
+                  candidate-pos
+                  best-pos))))
           best-pos particles))
 
 (defnp update-velocity
@@ -137,14 +142,6 @@
         progress (/ epoch max-epochs)]
     (+ minimum (* (- 1 progress) domain))))
 
-(defn safe-min
-  "JIC the infinity start plus objective fn makes things go nuts."
-  [a b]
-  (cond
-    (Double/isNaN a) b
-    (Double/isNaN b) a
-    :else (min a b)))
-
 (defn find-optimum
   "Swarm-search the solution space of fn `f` for a local optimum, based on an
    arbiter (eg. `min`).
@@ -152,37 +149,37 @@
    https://youtu.be/JhgDMAm-imI?t=777"
   [params f]
   {:pre [(s/valid? ::optimization-params params)]}
-  (let [{:keys [inertial-coeff-fn cognitive-coeff social-coeff
-                arbiter empty-pos
+  (let [{:coeff/keys [cognition sociability]
+         :keys [inertial-coeff-fn
+                arbiter
                 n-epochs n-particles]} params]
     (loop [current-epoch  n-epochs
-           swarm          (make-swarm empty-pos n-particles)
-           best-swarm-pos empty-pos]
-      (timbre/debug current-epoch best-swarm-pos)
+           swarm          (make-swarm n-particles)
+           best-swarm-pos nil]
+      (timbre/trace current-epoch best-swarm-pos)
       (if (<= current-epoch 0)
         best-swarm-pos
         (let [inertial-coeff (inertial-coeff-fn n-epochs current-epoch)
               swarm' (p ::advance-swarm
-                        (advance-swarm inertial-coeff cognitive-coeff social-coeff
+                        (advance-swarm inertial-coeff cognition sociability
                                        best-swarm-pos
                                        arbiter f
                                        swarm))
-              best-swarm-pos'(p ::get-best-position
-                                (get-best-position arbiter f best-swarm-pos swarm'))]
-          (timbre/trace current-epoch best-swarm-pos')
-          (recur (dec current-epoch) swarm' best-swarm-pos'))))))
+              best-swarm-pos' (p ::get-best-position
+                                 (get-best-position arbiter f best-swarm-pos swarm'))]
+          (recur (dec current-epoch)
+                 swarm'
+                 best-swarm-pos'))))))
 
 (s/def ::optimization-params (s/keys :req-un [::n-epochs
                                               ::n-particles
-                                              ::inertial-coeff-fn
-                                              ::social-coeff
-                                              ::cognitive-coeff
-                                              ::arbiter
-                                              ::empty-pos]))
+                                              ; ::inertial-coeff-fn
+                                              ; ::social-coeff
+                                              ; ::cognitive-coeff
+                                              ::arbiter]))
 (s/def ::n-epochs pos-int?)
 (s/def ::n-particles pos-int?)
 ;; inertial-coeff fn is max-epoch -> curr-epoch -> int-in 0, 2
-(s/def ::cognitive-coeff (s/double-in {:min 0 :max 2})) ;; attraction to own memory of 'best'
-(s/def ::social-coeff (s/double-in {:min 0 :max 2})) ;; influence of the swarm memory of 'best'
+; (s/def ::cognitive-coeff (s/double-in {:min 0 :max 2 :infinite? false :NaN? false})) ;; attraction to own memory of 'best'
+; (s/def ::social-coeff (s/double-in {:min 0 :max 2})) ;; influence of the swarm memory of 'best'
 ;; arbiter is pos -> pos -> pos ... pick the 'best'; mappend
-;; empty-pos is a pos and is the global 'worst'; mempty

@@ -6,8 +6,7 @@
    [taoensso.tufte :as tufte :refer [p profile]]))
 
 (tufte/add-basic-println-handler! {})
-; (timbre/set-level! :warn)
-(timbre/set-level! :debug)
+(timbre/set-level! :info)
 
 (deftest get-next-velocity-test
   (testing "velocity+inertia only"
@@ -70,11 +69,6 @@
                                                  swarm)]
       (is (= expected actual)))))
 
-(deftest safe-min-test
-  (is (= 2 (pso/safe-min ##NaN 2)))
-  (is (= 2 (pso/safe-min 2 ##NaN)))
-  (is (= ##NaN (pso/safe-min ##NaN ##NaN))))
-
 (deftest get-best-position-test
   (let [f (fn [{:keys [x y]}] (+ x y))
         particles [{:current-pos {:x 0.23, :y 0.53}}
@@ -87,7 +81,7 @@
     (is (= {:x 0.17, :y 0.11}
            (pso/get-best-position min f {:x ##Inf :y ##Inf} particles)))
     (is (= {:x 0.17, :y 0.11}
-           (pso/get-best-position pso/safe-min f {:x ##NaN :y ##NaN} particles)))))
+           (pso/get-best-position min f nil particles)))))
 
 (defn equalish [a b] (< (- (Math/abs a) (Math/abs b)) 1e-4))
 
@@ -100,20 +94,20 @@
   (is (equalish 0.2  (pso/declining-inertia 10 10))))
 
 (deftest find-optimum-test
-  (let [search-params {:n-epochs          100
-                       :n-particles       1000
-                       :inertial-coeff-fn pso/declining-inertia
-                       :cognitive-coeff   2
-                       :social-coeff      2
-                       :arbiter           pso/safe-min
-                       :empty-pos         {:x 1 :y 1}}
-        cost-surface  (fn [{:keys [x y]}]
-                        ;; in practice, MEMOIZE THIS
+  (let [search-params {:n-epochs            100
+                       :n-particles         1000
+                       :inertial-coeff-fn   pso/declining-inertia
+                       :coeff/cognition     2
+                       :coeff/sociability 2
+                       :arbiter             min}
+        cost-surface  (memoize (fnil (fn [{:keys [x y]}]
+                        ;; in practice, MEMOIZE THIS fn
                         (p ::cost-surface
-                           (* x (Math/exp (- (+ (* x x) (* y y)))))))
+                           (* x (Math/exp (- (+ (* x x) (* y y))))))) ##Inf))
         expected      {:x -0.7071068, :y 0.0}
         actual        (profile {} (pso/find-optimum search-params
                                                     cost-surface))]
+    (is (= expected actual))
     (is (position-equalish expected actual))))
 
 (comment
