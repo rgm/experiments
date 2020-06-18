@@ -6,9 +6,6 @@
  :preloads [day8.re-frame-10x.preload
             devtools.preload]
  :infer-externs true
- ; :verbose true
- :npm-deps false
+ :verbose true
  :output-dir "target/public/cljs-out/dev"
- :output-to "target/public/cljs-out/dev-main.js"
- :language-out :ecmascript5 ;; see https://dev.clojure.org/jira/browse/CLJS-2376
- }
+ :output-to "target/public/cljs-out/dev-main.js"}
