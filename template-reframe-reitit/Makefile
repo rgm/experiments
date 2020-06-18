@@ -1,9 +1,7 @@
 all: repl
 
-repl: css
-	clojure -A:dev:frontend:test --main "rebel-readline.main"
-
-css: resources/public/styles.css
+repl: resources/public/styles.css
+	clojure -A:dev:frontend:test --main rebel-readline.main
 
 resources/public/styles.css: node_modules postcss.config.js $(CSS_SOURCES)
 	yarn run postcss -c postcss.config.js -o "$@" src/frontend/**/*.css
