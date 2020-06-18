@@ -2,6 +2,7 @@
   (:require
    [re-frame.core :as re-frame :refer [dispatch subscribe]]
    [reagent.core :as reagent]
+   [reagent.dom :as rdom]
    [reitit.core :as r]
    [rgm.routing :as routing]
    [rgm.state :as state]))
@@ -30,8 +31,8 @@
   []
   (re-frame/clear-subscription-cache!)
   (routing/init-routes!)
-  (reagent/render [Layout {:router routing/router}]
-                   (.getElementById js/document "app")))
+  (rdom/render [Layout {:router routing/router}]
+               (.getElementById js/document "app")))
 
 (defn ^:export init
   []
