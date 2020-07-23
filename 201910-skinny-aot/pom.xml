@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>201910-skinny-aot</groupId>
+  <artifactId>201910-skinny-aot</artifactId>
+  <version>0.1.0</version>
+  <name>201910-skinny-aot</name>
+  <dependencies>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>clojure</artifactId>
+      <version>1.10.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>clojurescript</artifactId>
+      <version>1.10.520</version>
+    </dependency>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>core.async</artifactId>
+      <version>0.4.500</version>
+    </dependency>
+    <dependency>
+      <groupId>com.taoensso</groupId>
+      <artifactId>timbre</artifactId>
+      <version>4.10.0</version>
+    </dependency>
+    <dependency>
+      <groupId>metosin</groupId>
+      <artifactId>reitit</artifactId>
+      <version>0.3.10</version>
+    </dependency>
+  </dependencies>
+  <build>
+    <sourceDirectory>src</sourceDirectory>
+  </build>
+  <repositories>
+    <repository>
+      <id>clojars.org</id>
+      <url>https://repo.clojars.org</url>
+    </repository>
+  </repositories>
+</project>

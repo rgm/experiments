@@ -1,0 +1,7 @@
+{:paths ["src"]
+ :deps
+ {com.taoensso/timbre {:mvn/version "4.10.0"}
+  metosin/reitit {:mvn/version "0.3.10"}
+  org.clojure/clojure {:mvn/version "1.10.1"}}
+ :aliases
+ {:build {:extra-paths ["dev"]}}}
