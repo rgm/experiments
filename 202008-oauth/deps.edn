@@ -1,0 +1,15 @@
+{:paths ["resources" "src" "dev"]
+ :deps {clj-http/clj-http          {:mvn/version "RELEASE"}
+        clj-oauth/clj-oauth        {:mvn/version "RELEASE"}
+        com.layerware/hugsql       {:mvn/version "RELEASE"}
+        com.taoensso/carmine       {:mvn/version "RELEASE"}
+        juxt/clip                  {:mvn/version "RELEASE"}
+        buddy/buddy                {:mvn/version "RELEASE"}
+        ring/ring                  {:mvn/version "RELEASE"}
+        ring-oauth2/ring-oauth2    {:mvn/version "RELEASE"}
+        migratus                   {:mvn/version "RELEASE"}
+        metosin/ring-http-response {:mvn/version "RELEASE"}
+        metosin/reitit             {:mvn/version "RELEASE"}
+        metosin/muuntaja           {:mvn/version "RELEASE"}
+        ring/ring-defaults         {:mvn/version "RELEASE"}
+        selmer                     {:mvn/version "RELEASE"}}}
