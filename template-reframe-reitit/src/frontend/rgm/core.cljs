@@ -5,12 +5,13 @@
    [reagent.dom :as rdom]
    [reitit.core :as r]
    [rgm.routing :as routing]
-   [rgm.state :as state]))
+   [rgm.state :as state]
+   [tw-cljs.core :refer [tw]]))
 
 (def default-db {::routing/current-route nil})
 
 (defn Nav [{:keys [router current-route]}]
-  [:ul
+  [:ul (tw [:flex])
    (for [route-name (r/route-names router)
          :let       [route (r/match-by-name router route-name)
                      text (-> route :data :link-text)]]
@@ -20,7 +21,8 @@
       ;; Create a normal links that user can click
       [:a {:href (routing/href route-name)} text]])])
 
-(defn Layout [{:keys [router]}]
+(defn Layout
+  [{:keys [router]}]
   (let [current-route @(subscribe [::routing/current-route])]
     [:<>
      [Nav {:router router :current-route current-route}]
