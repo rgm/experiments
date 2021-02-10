@@ -1,0 +1,6 @@
+{
+  "initializationOptions": {
+    "source-paths": ["src/backend", "src/frontend", "test"],
+    "macro-defs": {}
+  }
+}

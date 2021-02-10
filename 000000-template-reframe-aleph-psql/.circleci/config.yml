@@ -1,0 +1,25 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/clojure:tools-deps-node-browsers
+      - image: circleci/postgres:11.5-alpine
+        environment:
+          POSTGRES_USER: circleci
+    working_directory: ~/repo
+    environment:
+      JAVA_TOOL_OPTIONS: -Xmx1g
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "deps.edn" }}
+            - v1-dependencies-
+      - run:
+          name: Run unit tests
+          command: |
+            bin/kaocha
+      - save_cache:
+          key: v1-dependencies-{{ checksum "deps.edn" }}
+          paths:
+            - ~/.m2

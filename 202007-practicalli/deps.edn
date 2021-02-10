@@ -1,0 +1,4 @@
+{:paths ["src"]
+ :deps {techascent/tech.ml.dataset {:mvn/version "2.08"}
+        techascent/tech.viz {:mvn/version "0.3"}
+        org.clojure/data.csv {:mvn/version "1.0.0"}}}

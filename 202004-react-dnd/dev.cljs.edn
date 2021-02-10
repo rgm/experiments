@@ -1,0 +1,7 @@
+^{:css-dirs   ["resources/public"]
+  :watch-dirs ["src"]}
+{:main        dnd.core
+ :preloads [day8.re-frame-10x.preload devtools.preload]
+ :closure-defines   {"re_frame.trace.trace_enabled_QMARK_" true
+                     goog.DEBUG true}
+ :output-to   "resources/public/app.js"}

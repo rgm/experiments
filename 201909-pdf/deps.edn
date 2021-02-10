@@ -1,0 +1,1 @@
+{:deps {net.sf.cssbox/pdf2dom {:mvn/version "1.8"}}}

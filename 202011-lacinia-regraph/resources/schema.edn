@@ -1,0 +1,14 @@
+{:enums
+ {}
+
+ :objects
+ {:building {:fields {:id {:type (non-null Int)}
+                      :address {:type String}}}}
+
+ :queries
+ {:foo {:type :building
+        :args {:id {:type (non-null Int)}}
+        :resolve :get-foo}
+  :bar {:type :building
+        :args {}
+        :resolve :get-bar}}}

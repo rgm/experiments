@@ -1,0 +1,4 @@
+{:paths ["src"]
+ :deps {org.clojure/core.async {:mvn/version "0.6.532"}
+        org.clojure/test.check {:mvn/version "0.10.0"}
+        org.clojure/spec.alpha {:mvn/version "0.2.176"}}}

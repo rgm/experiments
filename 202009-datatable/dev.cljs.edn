@@ -1,0 +1,6 @@
+{:main                 rgm.workspaces.main
+ :asset-path           "js/workspaces/out"
+ :output-to            "resources/public/js/workspaces/main.js"
+ :output-dir           "resources/public/js/workspaces/out"
+ :source-map-timestamp true
+ :preloads             [devtools.preload]}

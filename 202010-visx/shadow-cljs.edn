@@ -1,0 +1,17 @@
+;; shadow-cljs configuration
+{:source-paths
+ ["src/dev"
+  "src/main"
+  "src/test"]
+
+ :dependencies
+ [[lilactown/helix "0.0.13"]]
+
+ :dev-http {8000 "resources/public"}
+
+ :builds
+ {:app {:target :browser
+        :modules {:main {:entries [rgm.core]}}
+        :dev {:compiler-options {:output-feature-set :es6}}
+        :output-dir "resources/public/assets/app/js"
+        :asset-path "/assets/app/js"}}}

@@ -1,0 +1,4 @@
+^{:watch-dirs ["src"]}
+{:optimizations :advanced
+ :modules {:core {:entries #{rgm.core}}
+           :extra {:entries #{rgm.extra}}}}

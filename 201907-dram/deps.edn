@@ -1,0 +1,2 @@
+{:deps {com.opengb/dram {:git/url "git@github.com:opengb/dram.git"
+                         :sha "1d59a53f83ea903edc1022ee92d01d3086c8d6a4"}}}

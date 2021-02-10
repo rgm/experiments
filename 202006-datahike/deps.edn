@@ -1,0 +1,3 @@
+{:paths ["src"]
+ :deps {io.replikativ/datahike          {:mvn/version "0.3.0"}
+        io.replikativ/datahike-postgres {:mvn/version "0.1.0"}}}

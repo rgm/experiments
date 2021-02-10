@@ -1,0 +1,16 @@
+- fix ctns (reset) on figwheel
+- aero
+- new cider nrepl
+- unit tests
+- property tests
+- prepl
+- code splitting
+
+Archive:
+	- integrant @done(2019-04-24)
+	- ring et al // aleph + reitit @done(2019-04-24)
+	- devcards @done(2018-10-29)
+	- figure out NREPL/piggieback with vim @done(2018-10-29)
+	- reframe @done(2018-09-12)
+	- adds more react, leaflet, vega @done(2018-09-17)
+	- add re-frame 10x @done(2018-09-17)

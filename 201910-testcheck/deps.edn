@@ -1,0 +1,5 @@
+{:paths ["src" "test"]
+ :deps {org.clojure/test.check {:mvn/version "0.10.0"}
+        org.clojure/clojure {:mvn/version "1.10.1"}
+        org.clojure/spec.alpha {:mvn/version "0.2.176"}
+        com.taoensso/timbre {:mvn/version "4.10.0"}}}
