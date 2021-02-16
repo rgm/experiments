@@ -4,13 +4,12 @@
   (:require
    [cljs-bean.core :refer [bean ->clj ->js]]
    [clojure.pprint :as pp]
-   [clojure.spec.alpha :as s]
-   [clojure.test :as t :refer [deftest testing is]]
+   [my.reagent-table :as rt]
    [react :refer [useMemo]]
    [react-table :refer [useTable useSortBy useFilters]]
    [reagent.core :as rg]
    [reagent.dom :as rdom]
-   [taoensso.timbre :as timbre]))
+   [my.examples]))
 
 ;; https://github.com/reagent-project/reagent/blob/master/doc/ReactFeatures.md#hooks
 ;; https://react-table.tanstack.com/docs/quick-start
@@ -74,13 +73,13 @@
 
 (defn Dim
   [[mag unit]]
-  [:div {:class "flex"}
-   [:div {:class ["text-red-500 font-bold"]} mag]
-   [:div {:class ""} (tr unit)]])
+  [:div {:class ["flex" "items-baseline"]}
+   [:div {:class ["text-red-700 font-bold"]} mag]
+   [:div {:class (when (not= unit :in) "ml-1")} (tr unit)]])
 
 (defn Button
   [props label]
-  [:button (merge props {:class ["border" "px-2" "py-1" "hover:bg-red-200"]})
+  [:button (merge props {:class ["border" "border-black" "px-2" "py-1" "hover:bg-red-200"]})
    label])
 
 ;; }}}
@@ -209,7 +208,7 @@
         memoized-data    (useMemo #(->js data) #js [])
         filter-types     (useMemo (fn []
                                     (->js {:text (fn [rows id filter-value]
-                                                   (prn rows id filter-value)
+                                                   ; (prn rows id filter-value)
                                                    rows)}))
                                   #js [])
         ;; need to use react/useMemo or the hook invalidation will cause
@@ -254,10 +253,50 @@
 
 ;; }}}
 
+;; * Simple Vector Table {{{1
+
+(def data3 (partition 5 (range 100)))
+
+(def columns3
+  [{:Header "col 1"}
+   {:Header "col 2"}
+   {:Header "col 3"}
+   {:Header "col 4"}
+   {:Header "col 5"}])
+
+(defn SimpleVectorTable
+  []
+  (let [*tstate (rt/make-tstate {:columns columns3 :data data3})]
+    (fn []
+      #_[:<>
+       (let [{:keys [header-groups rows]} @*tstate]
+         [:table (merge (rt/get-table-props @*tstate) {:class "border w-full"})
+          (into [:thead]
+                (for [hg header-groups :let [{headers :headers} hg]]
+                  (into [:tr (merge
+                              (rt/get-header-group-props @*tstate hg)
+                              {:style ["border" "border-b"]})]
+                        (for [column headers
+                              :let [{:keys [Header]} column]]
+                          [:th (merge (rt/get-header-props @*tstate column)
+                                      {:style ["border" "border-b"]})
+                           [Header]]))))
+          (into [:tbody (rt/get-tbody-props @*tstate)]
+                (for [row (map (partial rt/prepare-row @*tstate) rows)
+                      :let [{cells :cells} row]]
+                  (into [:tr (rt/get-row-props @*tstate row)]
+                        (for [cell cells :let [{Cell :Cell} cell]]
+                          [:td (rt/get-cell-props @*tstate cell) [Cell]]))))])
+
+       [:pre {:class ["mt-5" "text-sm"]} (with-out-str (pp/pprint @*tstate))]])))
+;; }}}
+
 ;; so data is the stuff we put in
 ;; a "row" is prepared for display
 
 (defn basic-sort [a b] (sort a b))
+
+(defn in-set? [_] true)
 
 (def data2 [{:subref "A" :spacing [48 :in] :xmit [0.25 :W_m2k]}
             {:subref "B" :spacing [16 :in] :xmit [0.25 :W_m2k]}
@@ -266,217 +305,136 @@
             {:subref "E" :spacing [16 :in] :xmit [0.15 :W_m2k]}
             {:subref "F" :spacing [72 :in] :xmit [0.15 :W_m2k]}])
 
-(declare ColumnSorter ColumnFilterer basic-sort in-set?)
+(declare SortView FilterView)
 
 (defn columns2 []
   [{:Header      "Subref"
     :accessor    :subref
     :sort-fn     basic-sort
-    :Sort        ColumnSorter}
+    :Sort        SortView
+    :filter-pred in-set?
+    :Filter      FilterView}
    {:Header      "Spacing"
     :accessor    #(vector Dim (:spacing %))
     :sort-fn     basic-sort
-    :Sort        ColumnSorter
+    :Sort        SortView
     :filter-pred in-set?
-    :Filter      ColumnFilterer}
+    :Filter      FilterView}
    {:Header      "Transmittance"
     :accessor    #(vector Dim (:xmit %))
     :sort-fn     (fn [a b] (sort a b))
-    :Sort        ColumnSorter
+    :Sort        SortView
     :filter-pred in-set?
-    :Filter      ColumnFilterer}])
+    :Filter      FilterView}])
+
+
 
 ;; * Reagent version {{{1
-
-(defn componentify
-  "Let us use strings, [Thing x], etc. to simplify render site. (Don't use `ifn?`
-   since vectors implement this)."
-  [x]
-  (if-not (fn? x) (constantly x) x))
-
-(defn prepare-column
-  [col]
-  (-> col
-      (update :Header componentify)
-      (assoc :can-sort?       (boolean (:Sort col))
-             :can-filter?     (boolean (and (:filter-pred col) (:Filter col)))
-             :is-sorted?      false
-             :is-sorted-desc? false)))
-
-(defn prepare-row
-  "Annotate a data row with :cells to be used for UI display. This is
-   available separately so potentially expensive pre-display work in case
-   of a paginated table can be deferred."
-  [table row]
-  (let [->row-vector (:->row-vector table)
-        values       (->row-vector row)
-        cells        (map (fn [x] {:Cell (componentify x)}) values)]
-    (assoc row :cells cells)))
-
-(defn make-lookup-table
-  [keyfn ms]
-  (into {} (map (juxt keyfn identity)) ms))
-
-(defn get-headers [header-group] (sort-by :pos (vals (:headers header-group))))
-
-(defn filter-tstate
-  [tstate]
-  (update tstate :rows #(take 5 %)))
-
-(defn sort-tstate
-  [tstate]
-  (if-let [{:keys [col-id desc?]} (:sort-by tstate)]
-    (let [col (get-in tstate [:column-table col-id])
-          {accessor :accessor} col]
-      (update tstate :rows (fn [rows]
-                             (let [sorted (sort-by accessor rows)]
-                               (if desc?  (reverse sorted) sorted)))))
-    tstate))
-
-(defn update-tstate
-  "Refresh derived state in tstate. Meant to be usable in swap!"
-  [tstate]
-  (let [{:keys [column-table data]} tstate
-        column-table' (if-let [sort-spec (:sort-by tstate)]
-                        (->> column-table
-                             (map (fn [[col-id col]]
-                                    [col-id (let [is-sorted? (= col-id (:col-id sort-spec))
-                                                  desc? (and is-sorted? (:desc? sort-spec))]
-                                              (assoc col
-                                                     :is-sorted? is-sorted?
-                                                     :is-sorted-desc? desc?))]))
-                             (into {}))
-                        column-table)]
-    (-> tstate
-        (assoc :column-table column-table')
-        (assoc :header-groups [;; ordered, only one header group for now
-                               {:headers (->> (sort-by :pos (vals column-table')))}])
-        (assoc :->row-vector (->> column-table' vals
-                                  (sort-by :pos) (map :accessor) (apply juxt)))
-        (assoc :rows data) ;; reset for next 2
-        (filter-tstate)
-        (sort-tstate))))
-
-(defn make-tstate
-  [{:keys [columns data]}]
-  (let [column-table (->> columns
-                          (map prepare-column)
-                          (map-indexed (fn [i m] (assoc m :col-id i :pos i)))
-                          (make-lookup-table :col-id))]
-    (update-tstate {:columns columns
-                    :data data
-                    :column-table column-table
-                    :sort-by nil})))
-
-;; prop generation
-
-;; these are here so the table state can control eg. resizable column widths
-
-(defn get-table-props [tstate] {:role "table"})
-
-(defn get-header-group-props [tstate header-group] {:role "row"})
-
-(defn get-header-props [tstate column] {:role "columnheader"})
-
-(defn get-tbody-props [tstate] {:role "rowgroup"})
-
-(defn get-row-props [tstate row] {:role "row"})
-
-(defn get-cell-props [tstate cell] {:role "cell"})
-
-;; sorting
-
-(defn update-table-sort
-  [tstate col {:keys [desc?]}]
-  (let []
-    (prn "update table sort" col desc?)
-    (-> tstate
-        (assoc :sort-by {:col-id (:col-id col) :desc? desc?})
-        (update-tstate))))
-
-(defn ColumnSorter
-  "sort! accepts a column and options"
-  [_tstate col sort!]
-  [:div "sort"
-   [:button {:class ["border"] :onClick #(sort! col {:desc? false})} "asc"]
-   [:button {:class ["border"] :onClick #(sort! col {:desc? true})} "desc"]])
-
-;; filtering
-
-(defn in-set? [filter-vals x] (boolean ((set filter-vals) x)))
-
-(defn update-table-filters
-  [tstate col opt]
-  (update-tstate tstate))
-
-(defn ColumnFilterer
-  ;; FIXME should this know tstate is an atom? What if it's re-frame?
-  [*tstate col]
-  (let [all-opts (set (map (:accessor col) (:data @*tstate)))]
-    [:div "filter"
-     [:div {:class []}
-      [:label {:class ["flex" "items-baseline"]}
-       [:input {:type "checkbox"}] "All"]
-      (for [opt (sort-by identity all-opts)]
-        ^{:key (str opt)}
-        [:label {:class ["flex" "items-baseline"]}
-         [:input {:type "checkbox"
-                  :onClick #(swap! *tstate update-table-filters col opt)}] opt])]]))
 
 ;; reagent-example
 
 ;; keep outside of component b/c could also be re-frame state
-(def *TSTATE (rg/atom (make-tstate {:columns (columns2) :data data2})))
+(def *TSTATE (rg/atom (rt/make-tstate {:columns (columns2) :data data2})))
+
+;; these mutation fns will have to be composed and passed around as opaque
+;; mutators since they could be a swap! on an ratom or they could be a
+;; re-frame.core/dispatch. Note they're closed over the global table state atom
+;; since the views don't generally get to know about this ratom.
 
 (defn SORT!
-  [col opts]
-  (swap! *TSTATE update-table-sort col opts))
+  [col desc?]
+  (swap! *TSTATE rt/replace-table-sort col desc?))
+
+(defn ADD-FILTER!
+  [col value]
+  (swap! *TSTATE rt/add-table-filter col value))
+
+(defn REMOVE-FILTER!
+  [col value]
+  (swap! *TSTATE rt/remove-table-filter col value))
+
+(defn SortView
+  "sort! accepts a column and options"
+  [_tstate col sort!]
+  [:div {:class "flex"}
+   "sort"
+   [:button {:class ["border" "border-gray-400" "px-1"] :onClick #(sort! col false)} "asc"]
+   [:button {:class ["border" "border-gray-400" "px-1"] :onClick #(sort! col true)} "desc"]])
+
+(defn FilterView
+  "Accept a `ADD-FILTER!` fn that takes in a "
+  [tstate col add-filter! remove-filter!]
+  (let [all-opts (set (map (:accessor col) (:data tstate)))]
+    [:div "Filter"
+     [:div {:class []}
+      [:label {:class ["flex" "items-baseline"]}
+       [:input {:type "checkbox"
+                :checked true
+                :onChange #(prn "changed!")}] "All"]
+      (for [opt (sort-by identity all-opts)]
+        ^{:key (str opt)}
+        [:label {:class ["flex" "items-baseline"]}
+         (let [checked? (rt/has-filter-value? tstate col opt)
+               on-change (when checked?
+
+                           #(remove-filter! col opt)
+                           #(add-filter! col opt))]
+           [:input {:type "checkbox"
+                    :checked checked?
+                    :onChange on-change}]) opt])]
+     [:button {:class [ "border" "px-1"]} "Clear filter"]]))
 
 (defn ReagentTable
   []
   [:<>
-   (let [{:keys [header-groups rows]} @*TSTATE]
-     [:table (merge (get-table-props @*TSTATE)
-                    {:class "border w-full"})
-      (into [:thead]
+   (let [tstate @*TSTATE
+         {:keys [header-groups rows]} tstate]
+     [:table (merge (rt/get-table-props tstate) {:class "border w-full"})
+      (into [:thead {:class "bg-gray-200 border border-b text-gray-600"}]
             (for [hg header-groups :let [{headers :headers} hg]]
               (into [:tr (merge
-                          (get-header-group-props *TSTATE hg)
+                          (rt/get-header-group-props *TSTATE hg)
                           {:style ["border" "border-b"]})]
                     (for [column headers
                           :let [{:keys [Header Sort Filter
                                         can-sort? can-filter?
                                         is-sorted? is-sorted-desc?]} column]]
-                      [:th (merge (get-header-props *TSTATE column)
-                                  {:style ["border" "border-b"]})
+                      [:th (merge (rt/get-header-props *TSTATE column)
+                                  {:class ["font-normal"]})
                        [Header]
                        (when (and can-sort? is-sorted?)
                          (if is-sorted-desc? " ↓" " ↑"))
-                       (when can-sort? [Sort *TSTATE column SORT!])
-                       (when can-filter? [Filter *TSTATE column])]))))
-      (into [:tbody (get-tbody-props @*TSTATE)]
-            (for [row (map (partial prepare-row @*TSTATE) rows)
+                       (when can-sort? [Sort tstate column SORT!])
+                       (when can-filter? [Filter tstate column
+                                          ADD-FILTER! REMOVE-FILTER!])]))))
+      (into [:tbody (rt/get-tbody-props tstate)]
+            (for [row (map (partial rt/prepare-row tstate) rows)
                   :let [{cells :cells} row]]
-              (into [:tr (get-row-props @*TSTATE row)]
+              (into [:tr (rt/get-row-props tstate row)]
                     (for [cell cells :let [{Cell :Cell} cell]]
-                      [:td (get-cell-props @*TSTATE cell) [Cell]]))))])
+                      [:td (rt/get-cell-props tstate cell) [Cell]]))))])
 
-   [:pre {:class ["mt-5" "text-sm"]} (with-out-str (pp/pprint @*TSTATE))]])
+   [:pre {:class ["mt-5" "text-sm"]} (with-out-str (pp/pprint (:filters @*TSTATE)))]])
+
+;; }}}
 
 ;; }}}
 
-;; }}}
+(defn H2 [s] [:h2 {:class ["mt-6" "text-blue-500"]} s])
 
 (defn Root []
   [:div
    [:h1 {:class "text-2xl mb-2"} "React Table Demo"]
-   ; [:h2 {:class "mt-6 text-blue-500"} "Plain"]
+   ; [H2 "react-table Plain"]
    ; [:f> PlainTable]
-   ; [:h2 {:class "mt-6 text-blue-500"} "Sortable"]
+   ; [H2 "react-table Sortable"]
    ; [:f> SortingTable]
-   #_#_[:h2 {:class "mt-6 text-blue-500"} "Sortable and Filterable"]
-   [:f> FilteringTable]
-   [:h2 {:class ["mt-6" "text-blue-500"]} "Reagent table"]
+   ; [H2 "react-table Sortable and Filterable"]
+   ; [:f> FilteringTable]
+   [:<> [H2 "V5"] [my.examples/SimplestExample]]
+   [H2 "Simple vector table"]
+   [SimpleVectorTable]
+   [H2 "Reagent table"]
    [ReagentTable]])
 
 (defn ^:dev/before-load stop [])
@@ -487,6 +445,7 @@
 
 (comment
   (require '[flow-storm.api :as fsa])
+  (tap> {:hi "there"})
   (fsa/connect))
 
 ;; vi:fdm=marker
