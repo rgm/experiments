@@ -28,9 +28,22 @@
              ^{:key idx}
              [:tr (get-header-group-props)
               (for [h (get-headers header-group)
-                    :let [{:keys [idx get-header-props get-header-hiccup]} h]]
+                    :let [{:keys [idx get-header-props get-header-hiccup
+                                  can-sort? is-sorted? is-sorted-desc?]} h]]
                 ^{:key idx}
-                [:th (get-header-props) (get-header-hiccup)])])]
+                [:th
+                 (get-header-props)
+                 (get-header-hiccup)
+                 (when (and can-sort? is-sorted?) (if is-sorted-desc? " ↓" " ↑"))
+                 (when can-sort?
+                   ;; FIXME use :Sort
+                   [:<>
+                    [:button {:onClick #(swap! *table-inst
+                                               rt/set-sort
+                                               [{:id (:id h)
+                                                 :desc? (and is-sorted?
+                                                             (not is-sorted-desc?))}])}
+                     "SORT"]])])])]
 
           [:tbody (get-tbody-props)
            (for [row (map prepare-row (get-page))
@@ -42,12 +55,13 @@
                 ^{:key idx}
                 [:td (get-cell-props) (get-cell-hiccup)])])]]
 
-         [:details {:open true}
+         [:details {:open false}
           [:summary "Data"]
-          [:pre (with-out-str (pp/pprint @*table-inst))]]]))))
+          [:pre
+           {:class "text-sm"}
+           (with-out-str (pp/pprint @*table-inst))]]]))))
 
 (def simplest-props (let [header-fn (fn [_table-inst col]
-                                      (prn col)
                                       (if (= (:id col) "eighth")
                                         [:div {:class "bg-blue-100"} "col 8"]
                                         [:div {:class "bg-red-300"} "???"]))
@@ -64,7 +78,7 @@
                        :cols [{:Header "col 1" :Cell cell-fn}
                               {:Header "col 2" :Cell cell-fn}
                               {:Header "col 3" :Cell cell-fn}
-                              {:Header header-fn}
+                              {:Header header-fn :Sort true}
                               {:Header "col 5" :Cell cell-fn}
                               {:Header "col 6" :Cell cell-fn}
                               {:Header "col 7" :Cell cell-fn}
@@ -91,6 +105,20 @@
 (defn SimplestExample
   []
   [BasicTable simplest-props])
+
+(defn MapTable
+  []
+  (let [sort-fn (fn [] [:div [:button {} "asc"] [:button {} "desc"]])]
+    [BasicTable {:cols [{:id "w" :accessor :w}
+                        {:id "x" :accessor :x :Header "Xs"
+                         :Sort sort-fn}
+                        {:id "y" :accessor :y :Header "Ys"
+                         :Sort sort-fn
+                         :Cell (fn [_ {:keys [val]}] [:div val "\""])}
+                        {:id "z" :accessor :z :Header "Zs" :Sort sort-fn}]
+                 :data [{:w "A" :x 1 :y 6 :z 7}
+                        {:w "B" :x 2 :y 5 :z 9}
+                        {:w "C" :x 3 :y 4 :z 8}]}]))
 
 (comment
   (s/explain ::rt/args simplest-props))

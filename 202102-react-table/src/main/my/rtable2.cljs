@@ -27,8 +27,8 @@
 
 (s/def ::Header hiccup?)
 
-(s/def ::raw-column (s/keys :req-un [::Header]
-                            :opt-un [::id ::accessor]))
+(s/def ::raw-column (s/keys :req-un []
+                            :opt-un [::Header ::id ::accessor]))
 
 (s/def :rt.raw/data (s/coll-of ::raw-sample))
 
@@ -39,8 +39,9 @@
 (s/def ::col-group (s/keys :req-un [::cols]
                            :opt-un [::header-group-props]))
 
-(s/def ::col (s/keys :req-un [::id ::Header ::Cell]
-                     :opt-un [::header-props ::Footer ::footer-props]))
+(s/def ::col (s/keys :req-un [::id]
+                     :opt-un [::header-props ::Footer ::footer-props
+                              ::Header ::Cell]))
 
 (s/def ::row (s/keys :req-un [::idx ::cells]
                      :opt-un [::row-props]))
@@ -85,11 +86,14 @@
 (defn prepare-cols
   [cols]
   (map-indexed
-   (fn [i m]
-     (merge default-header-model
-            (assoc m
-                   :idx      i
-                   :accessor (or (:accessor m) (fn [d] (nth d i))))))
+   (fn [i col]
+     (let [can-sort? (boolean (:Sort col))]
+       (merge default-header-model
+              (assoc col
+                     :idx      i
+                     :id       (or (:id col) i)
+                     :accessor (or (:accessor col) (fn [d] (nth d i)))
+                     :can-sort? can-sort?))))
    cols))
 
 (defn add-header-render-fns
@@ -98,13 +102,33 @@
   (update table-inst :prepared-cols
           (fn [cols]
             (map (fn [col]
-                   (let [?hiccup-fn (:Header col)
-                         _ (prn ?hiccup-fn)]
+                   (let [?hiccup-fn (:Header col)]
                      (assoc col :get-header-hiccup
                             (if (fn? ?hiccup-fn)
                               (fn [] (?hiccup-fn table-inst col))
                               (fn [] (str ?hiccup-fn))))))
                  cols))))
+
+(defn add-header-sort-data
+  "Relies on whole table inst.
+
+   sort-by has form [{:id n :desc? bool},,,]"
+  [table-inst]
+  (let [sort-lookup (into {} (map (fn [{:keys [id desc?]}]
+                              [id (case desc?
+                                    ;; need to disambiguate false from nil
+                                    false :asc
+                                    true :desc
+                                    nil)]))
+                    (:sort-descriptors table-inst))]
+    (update table-inst :prepared-cols
+            (fn [cols]
+              (map (fn [col]
+                     (let [sort-k (get sort-lookup (:id col))]
+                       (assoc col
+                              :is-sorted? (boolean sort-k)
+                              :is-sorted-desc? (= :desc sort-k))))
+                   cols)))))
 
 (defn prepare-header-groups
   "Only does single nesting for now."
@@ -114,28 +138,82 @@
            :get-header-group-props (fn [] {:role "row"})
            :get-headers            (fn [] (:prepared-cols table-inst))}]))
 
+(defn filter-rows
+  [table-inst]
+  (assoc table-inst :rows (:prepared-data table-inst)))
+
+(defn get-col
+  [table-inst col-id]
+  ;; FIXME don't do a linear scan
+  (let [cols (:prepared-cols table-inst)]
+    (some->> cols (filter (fn [col] (= col-id (:id col)))) first)))
+
+(defn sort-rows
+  "Only does single descriptor for now."
+  [table-inst]
+  (let [data        (:prepared-data table-inst)
+        descriptors (:sort-descriptors table-inst)]
+    (if (empty? descriptors)
+      (assoc table-inst :rows data)
+      (let [descriptor  (first descriptors)
+            {col-id :id desc? :desc?} descriptor
+            col         (get-col table-inst col-id)
+            accessor    (:accessor col)
+            sorted-rows (sort-by #(-> % :data accessor) data)]
+        (assoc table-inst :rows (if desc?
+                                  (reverse sorted-rows)
+                                  sorted-rows))))))
+
+(defn trim-page
+  ""
+  [table-inst]
+  (assoc table-inst :page (drop 1 (:rows table-inst))))
+
 (defn make-table-inst
   [{:keys [data cols] :as m}]
   {:pre [(s/valid? :my.rtable2/args m)]}
   (let [prepared-data (map-indexed (fn [i x] {:idx i :data x}) data)
         prepared-cols (prepare-cols cols)
-        header-groups [{:idx                0
-                        :get-header-group-props (fn [] {:role "row"})
-                        :get-headers            (fn [] prepared-cols)}]
         table-inst (assoc m
                           :raw-data       data
                           :raw-cols       cols
-                          :prepared-data  prepared-data
-                          :prepared-cols  prepared-cols
-                          :rows           (take 10 prepared-data) ;; filtered and sorted
-                          :page           (take 5 prepared-data)
-                          :table-props    {:role "table"}         ;; for overall table
+                          :table-props    {:role "table"}
                           :thead-props    {:role "rowgroup"}
                           :tbody-props    {:role "rowgroup"}
-                          :header-groups  header-groups)]
+                          :prepared-data  prepared-data
+                          :prepared-cols  prepared-cols
+                          :sort-descriptors []
+                          :filters {})]
     (-> table-inst
+        (add-header-sort-data)
+        (filter-rows)
+        (sort-rows)
+        (trim-page)
         (add-header-render-fns)
         (prepare-header-groups))))
+
+(s/def ::id (s/or :num number? :str string?))
+(s/def :my.rtable2/desc? boolean?)
+(s/def ::sort-descriptor (s/keys :req-un [::id :my.rtable2/desc?]))
+(s/def ::sort-descriptors (s/+ ::sort-descriptor))
+
+(defn update-table-inst
+  [table-inst]
+  (-> table-inst
+      (add-header-sort-data)
+      (filter-rows)
+      (sort-rows)
+      (trim-page)
+      (add-header-render-fns)
+      (prepare-header-groups)))
+
+(defn set-sort
+  [table-inst sort-descriptors]
+  {:pre [(s/valid? ::sort-descriptors sort-descriptors)]}
+  (prn "sorting!" sort-descriptors)
+  (-> table-inst
+      (assoc :sort-descriptors sort-descriptors)
+      (update-table-inst)))
 
 ;; * Accessors {{{1
 

@@ -432,10 +432,12 @@
    ; [H2 "react-table Sortable and Filterable"]
    ; [:f> FilteringTable]
    [:<> [H2 "V5"] [my.examples/SimplestExample]]
-   [H2 "Simple vector table"]
-   [SimpleVectorTable]
-   [H2 "Reagent table"]
-   [ReagentTable]])
+   [:<> [H2 "Simple map table"]] [my.examples/MapTable]
+   ; [H2 "Simple vector table"]
+   ; [SimpleVectorTable]
+   ; [H2 "Reagent table"]
+   ; [ReagentTable]
+   ])
 
 (defn ^:dev/before-load stop [])
 
