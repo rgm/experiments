@@ -2,6 +2,7 @@
   (:require
    [clojure.pprint :as pp]
    [clojure.spec.alpha :as s]
+   [clojure.string :as str]
    [my.rtable2 :as rt]
    [reagent.core :as rg]))
 
@@ -20,30 +21,38 @@
         [:<>
          [:table (merge (get-table-props)
                         {:class "border w-full table-auto"})
+
           [:thead (get-thead-props)
-           (for [hg (get-header-groups) :let [{:keys [idx
-                                                      get-header-group-props
-                                                      get-headers]} hg]]
+           (for [header-group (get-header-groups)
+                 :let [{:keys [idx get-header-group-props get-headers]} header-group]]
              ^{:key idx}
              [:tr (get-header-group-props)
-              (for [h (get-headers hg)
-                    :let [{:keys [idx get-header-props Header]} h]]
+              (for [h (get-headers header-group)
+                    :let [{:keys [idx get-header-props get-header-hiccup]} h]]
                 ^{:key idx}
-                [:th (get-header-props) (str Header)])])]
+                [:th (get-header-props) (get-header-hiccup)])])]
+
           [:tbody (get-tbody-props)
            (for [row (map prepare-row (get-page))
                  :let [{:keys [idx get-row-props get-cells]} row]]
              ^{:key idx}
              [:tr (get-row-props)
-              (for [cell (get-cells) :let [{:keys [idx get-cell-props cell-hiccup]} cell]]
+              (for [cell (get-cells)
+                    :let [{:keys [idx get-cell-props get-cell-hiccup]} cell]]
                 ^{:key idx}
-                [:td (get-cell-props) (cell-hiccup)])])]]
+                [:td (get-cell-props) (get-cell-hiccup)])])]]
 
          [:details {:open true}
           [:summary "Data"]
           [:pre (with-out-str (pp/pprint @*table-inst))]]]))))
 
-(def simplest-props (let [cell-fn (fn [_ cell]
+(def simplest-props (let [header-fn (fn [_table-inst col]
+                                      (prn col)
+                                      (if (= (:id col) "eighth")
+                                        [:div {:class "bg-blue-100"} "col 8"]
+                                        [:div {:class "bg-red-300"} "???"]))
+                          cell-fn (fn [_ cell]
+                                    {:pre (s/valid? ::rt/cell cell)}
                                     (let [value (:val cell)]
                                       [:div {:class [(if (odd? value)
                                                        "text-blue-500"
@@ -55,11 +64,11 @@
                        :cols [{:Header "col 1" :Cell cell-fn}
                               {:Header "col 2" :Cell cell-fn}
                               {:Header "col 3" :Cell cell-fn}
-                              {:Header "col 4"}
+                              {:Header header-fn}
                               {:Header "col 5" :Cell cell-fn}
                               {:Header "col 6" :Cell cell-fn}
                               {:Header "col 7" :Cell cell-fn}
-                              {:Header "col 8" :Cell cell-fn}
+                              {:id "eighth" :Header header-fn :Cell cell-fn}
                               {:Header "col 9" :Cell cell-fn}
                               {:Header "col 10"}]}))
 

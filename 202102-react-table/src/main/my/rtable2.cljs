@@ -3,21 +3,24 @@
    tools and a la carte UI helpers."
   (:require
    [clojure.spec.alpha :as s]
-   [reagent.core :as rg]
-   [taoensso.timbre :as timbre]))
+   [clojure.test :as t :refer [deftest testing is]]))
 
-(defn componentify
-  "Let us use strings, [Thing x], etc. to simplify render site. (Don't use `ifn?`
-   since vectors implement this)."
-  [x]
-  (if-not (fn? x) (constantly x) x))
+;; terminology
+;; "data" is raw rows (vector of x or map k:x) supplied by user
+;; a raw column is supplied by a user and is supplemented by make-table-inst
+
+;; column, row, cell are vended by the table instance and are model objects
+;; with properties to help with display via hiccup (eg. props, render fns that
+;; generate hiccup)
+
+;; specs
 
 (defn hiccup?
   "ie. is this renderable by reagent?"
   [x]
-  (or (number? x)
-      (vector? x) ;; bit imprecise
-      (string? x)))
+  (or (string? x)
+      (number? x)
+      (fn? x)))
 
 (s/def ::raw-sample (s/or :vec (s/and (s/coll-of hiccup?) sequential?)
                           :map (s/map-of keyword? hiccup?)))
@@ -33,10 +36,6 @@
 
 (s/def :my.rtable2/args (s/keys :req-un [:rt.raw/cols :rt.raw/data]))
 
-;; terminology
-;; "data" is raw rows (vector of x or map k:x) supplied by user
-;; a "column" is supplied by a user and is supplemented by make-table-inst
-
 (s/def ::col-group (s/keys :req-un [::cols]
                            :opt-un [::header-group-props]))
 
@@ -51,7 +50,7 @@
 
 ;;
 
-(def default-header-model {:Header (fn [_table-inst _col-model])
+(def default-header-model {:Header (fn [_table-inst _col-model] "")
                            :Cell (fn [_table-inst cell-model] (str (:val cell-model)))
                            :get-header-props (fn [] {:role "columnheader"})})
 
@@ -75,7 +74,7 @@
                                        :val value})
                               ;; tack on render fn later so we can close over the cell
                               ;; and provide a zero-arg render fn
-                              cell' (assoc cell :cell-hiccup
+                              cell' (assoc cell :get-cell-hiccup
                                            (fn [] ((:Cell col) table-inst cell)))]
                            (conj acc cell')))
                        []
@@ -89,10 +88,31 @@
    (fn [i m]
      (merge default-header-model
             (assoc m
-                   :idx          i
-                   :Header       (:Header m)
-                   :accessor     (or (:accessor m) (fn [d] (nth d i))))))
+                   :idx      i
+                   :accessor (or (:accessor m) (fn [d] (nth d i))))))
    cols))
+
+(defn add-header-render-fns
+  "Need as a last step since other stuff relies on prepared-cols."
+  [table-inst]
+  (update table-inst :prepared-cols
+          (fn [cols]
+            (map (fn [col]
+                   (let [?hiccup-fn (:Header col)
+                         _ (prn ?hiccup-fn)]
+                     (assoc col :get-header-hiccup
+                            (if (fn? ?hiccup-fn)
+                              (fn [] (?hiccup-fn table-inst col))
+                              (fn [] (str ?hiccup-fn))))))
+                 cols))))
+
+(defn prepare-header-groups
+  "Only does single nesting for now."
+  [table-inst]
+  (assoc table-inst :header-groups
+         [{:idx                0
+           :get-header-group-props (fn [] {:role "row"})
+           :get-headers            (fn [] (:prepared-cols table-inst))}]))
 
 (defn make-table-inst
   [{:keys [data cols] :as m}]
@@ -101,18 +121,21 @@
         prepared-cols (prepare-cols cols)
         header-groups [{:idx                0
                         :get-header-group-props (fn [] {:role "row"})
-                        :get-headers            (fn [] prepared-cols)}]]
-    (assoc m
-           :raw-data       data
-           :raw-cols       cols
-           :prepared-data  prepared-data
-           :prepared-cols  prepared-cols
-           :rows           (take 10 prepared-data) ;; filtered and sorted
-           :page           (take 5 prepared-data)
-           :table-props    {:role "table"}         ;; for overall table
-           :thead-props    {:role "rowgroup"}
-           :tbody-props    {:role "rowgroup"}
-           :header-groups  header-groups)))
+                        :get-headers            (fn [] prepared-cols)}]
+        table-inst (assoc m
+                          :raw-data       data
+                          :raw-cols       cols
+                          :prepared-data  prepared-data
+                          :prepared-cols  prepared-cols
+                          :rows           (take 10 prepared-data) ;; filtered and sorted
+                          :page           (take 5 prepared-data)
+                          :table-props    {:role "table"}         ;; for overall table
+                          :thead-props    {:role "rowgroup"}
+                          :tbody-props    {:role "rowgroup"}
+                          :header-groups  header-groups)]
+    (-> table-inst
+        (add-header-render-fns)
+        (prepare-header-groups))))
 
 ;; * Accessors {{{1
 
