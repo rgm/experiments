@@ -1,0 +1,40 @@
+= opengb.spork.dgrid
+
+- dgrid state represented as a map containing "first class" cols, rows and cells.
+- keeps the managing of dgrid state separate from the persistence/reactivity
+  strategy (currently supporting either a reagent ratom or re-frame app-db).
+- "headless," meaning the intention is that the user write a relatively
+  straightforward custom hiccup-based component for the UI, and this library
+  will concern itself with providing accessors and mutators for a data
+  structure that keeps the state consistent.
+- inspired by react-table and d3, which provide useful generalized functions
+  around data but leave the DOM representation entirely up to you.
+
+== example
+
+[source,clojure]
+----
+include::example.clj
+----
+
+== models
+
+=== dgrid
+
+=== row
+
+=== col
+
+=== cell
+
+== accessors
+
+=== props
+
+== mutation
+
+=== sorting
+
+=== filtering
+
+=== pagination

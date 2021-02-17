@@ -1,4 +1,4 @@
-(ns opengb.spork.hiccup-datagrid
+(ns opengb.spork.dgrid
   "Headless datagrid library inspired by react-table.
 
    Provides a state data structure for a datagrid that can be held in a reagent
@@ -63,7 +63,11 @@
 
 (s/def ::Header hiccup?)
 
-(s/def ::raw-col (s/keys :opt-un [::Header ::id ::accessor]))
+(s/def ::Sort fn?)
+
+(s/def ::Filter fn?)
+
+(s/def ::raw-col (s/keys :opt-un [::Header ::id ::accessor ::Sort ::Filter]))
 
 (s/def :opengb.spork.datagrid.raw/data (s/coll-of ::raw-sample))
 
@@ -95,7 +99,8 @@
                                          "")
                         :Cell          (fn [_dgrid cell-model]
                                          (str (:val cell-model)))
-                        :get-col-props (fn [] {:role "columnheader"})})
+                        :get-col-props (fn [] {:role "columnheader"})
+                        :filter-pred   contains?}) ;; default to set membership
 
 (def default-row-model {:get-row-props (fn [] {:role "row"})})
 
@@ -118,7 +123,7 @@
                                        :val value})
                               ;; tack on render fn later so we can close over the cell
                               ;; and provide a zero-arg render fn
-                              cell' (assoc cell :get-cell-hiccup
+                              cell' (assoc cell :render-cell
                                            (fn [] ((:Cell col) dgrid cell)))]
                           (conj acc cell')))
                       []
@@ -127,16 +132,21 @@
            (assoc row :get-cells (fn [] cells)))))
 
 (defn prepare-cols
-  [cols]
+  [data cols]
   (map-indexed
    (fn [i col]
-     (let [can-sort? (boolean (:Sort col))]
+     (let [can-sort? (boolean (:Sort col))
+           can-filter? (boolean (:Filter col))
+           accessor (or (:accessor col) (fn [d] (nth d i)))]
        (merge default-col-model
               (assoc col
-                     :idx      i
-                     :id       (or (:id col) i)
-                     :accessor (or (:accessor col) (fn [d] (nth d i)))
-                     :can-sort? can-sort?))))
+                     :idx         i
+                     :id          (or (:id col) i)
+                     :accessor    accessor
+                     ;; add values for filters' use
+                     :vals        (into #{} (map (comp accessor :data)) data)
+                     :can-sort?   can-sort?
+                     :can-filter? can-filter?))))
    cols))
 
 (defn add-header-render-fns
@@ -147,16 +157,19 @@
           (fn [cols]
             (map (fn [col]
                    (let [?hiccup-fn (:Header col)]
-                     (assoc col :get-header-hiccup
-                            (if (fn? ?hiccup-fn)
-                              (fn [] (?hiccup-fn dgrid col))
-                              (fn [] (str ?hiccup-fn))))))
+                     (-> col
+                         (assoc :render-header (if (fn? ?hiccup-fn)
+                                                     (fn [] (?hiccup-fn dgrid col))
+                                                     (fn [] (str ?hiccup-fn))))
+                         (assoc :render-val (:Val col))
+                         (assoc :render-sorter (:Sort col))
+                         (assoc :render-filterer (:Filter col)))))
                  cols))))
 
 (defn add-col-sort-data
-  "Relies on whole table inst.
+  "Annotate the cols with current sorting state.
 
-   sort-by has form [{:id n :desc? bool},,,]"
+   :sort-descriptors has form [{:id n :desc? bool},,,]"
   [dgrid]
   {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::dgrid %)]}
   (let [sort-lookup (into {} (map (fn [{:keys [id desc?]}]
@@ -174,6 +187,15 @@
                               :is-sorted? (boolean sort-k)
                               :is-sorted-desc? (= :desc sort-k))))
                    cols)))))
+
+(defn add-col-filter-data
+  "Annotate the cols with current filtering state.
+
+   :filters has form {col-id #{val1 val2}}"
+  [dgrid]
+  {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::dgrid %)]}
+  (prn "RUN FILTERING")
+  dgrid)
 
 (defn prepare-col-groups
   "Only does single nesting for now."
@@ -234,12 +256,13 @@
 (defn make-dgrid
   [{:keys [data cols] :as args}]
   {:pre [(valid? ::args args)] :post [(valid? ::dgrid %)]}
-  (let [base-dgrid (assoc args
+  (let [prepared-data (map-indexed (fn [i x] {:idx i :data x}) data)
+        base-dgrid (assoc args
                           :table-props      {:role "table"}
                           :thead-props      {:role "rowgroup"}
                           :tbody-props      {:role "rowgroup"}
-                          :prepared-data    (map-indexed (fn [i x] {:idx i :data x}) data)
-                          :prepared-cols    (prepare-cols cols)
+                          :prepared-data    prepared-data
+                          :prepared-cols    (prepare-cols prepared-data cols)
                           :sort-descriptors []
                           :filters          {})]
     (derive-dgrid-state base-dgrid)))
@@ -262,6 +285,21 @@
   (-> dgrid
       (assoc :sort-descriptors [])
       (derive-dgrid-state)))
+
+(defn add-filter
+  [dgrid col val]
+  {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::dgrid %)]}
+  (update-in dgrid [:filters (:id col)] (fnil conj #{}) val))
+
+(defn remove-filter
+  [dgrid col val]
+  {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::dgrid %)]}
+  (update-in dgrid [:filters (:id col)] (fnil disj #{}) val))
+
+(defn clear-filters
+  [dgrid col]
+  {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::dgrid %)]}
+  (update dgrid :filters #(dissoc % (:id col))))
 
 ;; "table accessors" are specifically about rendering html tables.
 ;; They're fns so that we can delay everything to render time
@@ -288,7 +326,6 @@
   "For the ratom reactivity strategy, make an event handler fn to toggle the
    sort. Cycles through unsorted -> ascending -> descending -> unsorted."
   [*dgrid]
-  {:pre [(instance? reagent.ratom.RAtom *dgrid)]}
   (fn [col]
     (let [{:keys [id is-sorted? is-sorted-desc?]} col]
       (case [is-sorted? is-sorted-desc?]
@@ -296,5 +333,13 @@
         [false true]  (swap! *dgrid set-sort [{:id id :desc? false}])
         [true  false] (swap! *dgrid set-sort [{:id id :desc? true}])
         (swap! *dgrid clear-sort)))))
+
+(defn make-ratom-mutators
+  [*dgrid]
+  {:pre [(instance? reagent.ratom.RAtom *dgrid)]}
+  {:toggle-sort         (make-ratom-sort-toggle-fn *dgrid)
+   :add-filter-value    (fn [col val] (swap! *dgrid add-filter col val))
+   :remove-filter-value (fn [col val] (swap! *dgrid remove-filter col val))
+   :clear-filters       (fn [col] (swap! *dgrid clear-filters col))})
 
 ;; vi:fdm=marker

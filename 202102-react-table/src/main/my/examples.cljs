@@ -1,22 +1,38 @@
 (ns my.examples
   (:require
-   [clojure.pprint :as pp]
+   [clojure.pprint     :as pp]
    [clojure.spec.alpha :as s]
-   [opengb.spork.hiccup-datagrid :as hg]
-   [reagent.core :as rg]))
+   [opengb.spork.dgrid :as dgrid]
+   [reagent.core       :as rg]))
+
+(defn ToggleSort
+  [{:keys [toggle-sort] :as _mutators} col]
+  [:button {:class ["border" "px-2" "text-sm"] :onClick #(toggle-sort col)}
+   "sort"])
+
+(defn FilterByVals
+  [mutators col]
+  (let [{:keys [add-filter remove-filter clear-filters]} mutators
+        {values :vals render-val :render-val} col]
+    [:ul
+     [:li [:label [:input {:type "checkbox"}] "All"]]
+     (for [x (sort values)]
+       ^{:key x}
+       [:li [:label [:input {:type "checkbox"}]
+             (render-val x)]])]))
 
 (defn BasicTable
   [props]
   (let [{:keys [cols data]} props
-        *dgrid (rg/atom (hg/make-dgrid {:cols cols :data data}))]
+        *dgrid (rg/atom (dgrid/make-dgrid {:cols cols :data data}))]
     (fn [_]
       (let [{:keys [get-table-props
                     get-thead-props
                     get-tbody-props
                     get-col-groups
                     prepare-row
-                    get-page]} (hg/make-table-accessors @*dgrid)
-            toggle-sort (hg/make-ratom-sort-toggle-fn *dgrid)]
+                    get-page]} (dgrid/make-table-accessors @*dgrid)
+            mutators (dgrid/make-ratom-mutators *dgrid)]
         [:<>
          [:table (merge (get-table-props)
                         {:class "border w-full table-auto"})
@@ -27,17 +43,18 @@
              ^{:key idx}
              [:tr (get-col-group-props)
               (for [col (get-cols col-group)
-                    :let [{:keys [idx get-col-props get-header-hiccup
-                                  can-sort? is-sorted? is-sorted-desc?]} col]]
+                    :let [{:keys [idx get-col-props render-header
+                                  can-sort? is-sorted? is-sorted-desc?
+                                  render-sorter
+                                  can-filter?
+                                  render-filterer]} col]]
                 ^{:key idx}
                 [:th
                  (get-col-props)
-                 (get-header-hiccup)
+                 (render-header)
                  (when (and can-sort? is-sorted?) (if is-sorted-desc? "↓" "↑"))
-                 (when can-sort?
-                   ;; FIXME use :Sort
-                   [:<>
-                    [:button {:onClick #(toggle-sort col)} "SORT"]])])])]
+                 (when can-sort? (render-sorter mutators col))
+                 (when can-filter? (render-filterer mutators col))])])]
 
           [:tbody (get-tbody-props)
            (for [row (map prepare-row (get-page))
@@ -45,9 +62,9 @@
              ^{:key idx}
              [:tr (get-row-props)
               (for [cell (get-cells)
-                    :let [{:keys [idx get-cell-props get-cell-hiccup]} cell]]
+                    :let [{:keys [idx get-cell-props render-cell]} cell]]
                 ^{:key idx}
-                [:td (get-cell-props) (get-cell-hiccup)])])]]
+                [:td (get-cell-props) (render-cell)])])]]
 
          [:details {:open false}
           [:summary "Data"]
@@ -55,12 +72,12 @@
            {:class "text-sm"}
            (with-out-str (pp/pprint @*dgrid))]]]))))
 
-(def simplest-props (let [header-fn (fn [_dgrid col]
+(def simplest-props (let [MyHeader (fn [_dgrid col]
                                       (if (= (:id col) "eighth")
                                         [:div {:class "bg-blue-100"} "col 8"]
                                         [:div {:class "bg-red-300"} "???"]))
-                          cell-fn (fn [_dgrid cell]
-                                    {:pre (s/valid? ::hg/cell cell)}
+                          MyCell (fn [_dgrid cell]
+                                    {:pre (s/valid? ::dgrid/cell cell)}
                                     (let [value (:val cell)]
                                       [:div {:class [(if (odd? value)
                                                        "text-blue-500"
@@ -69,15 +86,15 @@
                                                        "bg-yellow-100")]}
                                        value]))]
                       {:data (partition 10 (shuffle (range 200)))
-                       :cols [{:Header "col 1" :Cell cell-fn}
-                              {:Header "col 2" :Cell cell-fn :Sort true}
-                              {:Header "col 3" :Cell cell-fn}
-                              {:Header header-fn :Sort true}
-                              {:Header "col 5" :Cell cell-fn}
-                              {:Header "col 6" :Cell cell-fn}
-                              {:Header "col 7" :Cell cell-fn}
-                              {:id "eighth" :Header header-fn :Cell cell-fn}
-                              {:Header "col 9" :Cell cell-fn}
+                       :cols [{:Header "col 1" :Cell MyCell}
+                              {:Header "col 2" :Cell MyCell}
+                              {:Header "col 3" :Cell MyCell}
+                              {:Header MyHeader :Sort ToggleSort}
+                              {:Header "col 5"}
+                              {:Header "col 6" :Cell MyCell}
+                              {:Header "col 7" :Cell MyCell}
+                              {:id "eighth" :Header MyHeader :Cell MyCell}
+                              {:Header "col 9" :Cell MyCell}
                               {:Header "col 10"}]}))
 
 (def grouped-props {:data (partition 10 (range 200))
@@ -88,31 +105,27 @@
                             :columns (map #(hash-map :Header (str "col " %))
                                           (range 6 11))}]})
 
-(def function-header-and-cells {:data [{:x [10 :in]}]
-                                :cols [{:Header (fn [_table-inst _col-model]
-                                                  [:div {:class "text-red-500"} "hi"])
-                                        :Cell   (fn [_table-inst cell-model]
-                                                  (let [value (:value cell-model)]
-                                                    [:div {:class "text-green-500"} value]))
-                                        :accessor :subref}]})
-
 (defn SimplestExample
   []
   [BasicTable simplest-props])
 
 (defn MapTable
   []
-  (let [sort-fn (fn [] [:div [:button {} "asc"] [:button {} "desc"]])]
-    [BasicTable {:cols [{:id "w" :accessor :w}
-                        {:id "x" :accessor :x :Header "Xs"
-                         :Sort sort-fn}
-                        {:id "y" :accessor :y :Header "Ys"
-                         :Sort sort-fn
-                         :Cell (fn [_ {:keys [val]}] [:div val "\""])}
-                        {:id "z" :accessor :z :Header "Zs" :Sort sort-fn}]
-                 :data [{:w "A" :x 1 :y 6 :z 7}
-                        {:w "B" :x 2 :y 5 :z 9}
-                        {:w "C" :x 3 :y 4 :z 8}]}]))
+  [BasicTable {:cols [{:id "w" :accessor :w}
+                      {:id "x" :accessor :x :Header "Xs"
+                       :Sort ToggleSort}
+                      {:id "y" :accessor :y :Header "Ys"
+                       :Sort ToggleSort
+                       :Filter FilterByVals
+                       :Cell (fn [_dgrid {:keys [val]}] [:div val "\""])
+                       :Val (fn [val] [:span val "\""])} ;; so filter can use it too
+                      {:id "z" :accessor :z :Header "Zs" :Sort ToggleSort}]
+               :data [{:w "A" :x 1 :y 6 :z 7}
+                      {:w "B" :x 2 :y 5 :z 9}
+                      {:w "C" :x 3 :y 4 :z 8}
+                      {:w "D" :x 1 :y 6 :z 7}
+                      {:w "E" :x 2 :y 5 :z 9}
+                      {:w "F" :x 3 :y 4 :z 8}]}])
 
 (comment
-  (s/explain ::hg/args simplest-props))
+  (s/explain ::dgrid/args simplest-props))
