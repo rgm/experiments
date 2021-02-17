@@ -15,6 +15,12 @@
 
 ;; specs
 
+(defn valid?
+  [spec x]
+  (let [result (s/valid? spec x)]
+    (when-not result (s/explain spec x))
+    result))
+
 (defn hiccup?
   "ie. is this renderable by reagent?"
   [x]
@@ -99,6 +105,8 @@
 (defn add-header-render-fns
   "Need as a last step since other stuff relies on prepared-cols."
   [table-inst]
+  {:pre [(valid? ::table-inst table-inst)]
+   :post [(valid? ::table-inst %)]}
   (update table-inst :prepared-cols
           (fn [cols]
             (map (fn [col]
@@ -114,6 +122,8 @@
 
    sort-by has form [{:id n :desc? bool},,,]"
   [table-inst]
+  {:pre [(valid? ::table-inst table-inst)]
+   :post [(valid? ::table-inst %)]}
   (let [sort-lookup (into {} (map (fn [{:keys [id desc?]}]
                               [id (case desc?
                                     ;; need to disambiguate false from nil
@@ -133,6 +143,8 @@
 (defn prepare-header-groups
   "Only does single nesting for now."
   [table-inst]
+  {:pre [(valid? ::table-inst table-inst)]
+   :post [(valid? ::table-inst %)]}
   (assoc table-inst :header-groups
          [{:idx                0
            :get-header-group-props (fn [] {:role "row"})
@@ -140,6 +152,8 @@
 
 (defn filter-rows
   [table-inst]
+  {:pre [(valid? ::table-inst table-inst)]
+   :post [(valid? ::table-inst %)]}
   (assoc table-inst :rows (:prepared-data table-inst)))
 
 (defn get-col
@@ -151,6 +165,8 @@
 (defn sort-rows
   "Only does single descriptor for now."
   [table-inst]
+  {:pre [(valid? ::table-inst table-inst)]
+   :post [(valid? ::table-inst %)]}
   (let [data        (:prepared-data table-inst)
         descriptors (:sort-descriptors table-inst)]
     (if (empty? descriptors)
@@ -167,11 +183,14 @@
 (defn trim-page
   ""
   [table-inst]
+  {:pre [(valid? ::table-inst table-inst)]
+   :post [(valid? ::table-inst %)]}
   (assoc table-inst :page (drop 1 (:rows table-inst))))
 
 (defn make-table-inst
   [{:keys [data cols] :as m}]
-  {:pre [(s/valid? :my.rtable2/args m)]}
+  {:pre [(valid? :my.rtable2/args m)]
+   :post [(valid? ::table-inst %)]}
   (let [prepared-data (map-indexed (fn [i x] {:idx i :data x}) data)
         prepared-cols (prepare-cols cols)
         table-inst (assoc m
@@ -199,6 +218,8 @@
 
 (defn update-table-inst
   [table-inst]
+  {:pre [(valid? ::table-inst table-inst)]
+   :post [(valid? ::table-inst %)]}
   (-> table-inst
       (add-header-sort-data)
       (filter-rows)
@@ -208,9 +229,10 @@
       (prepare-header-groups)))
 
 (defn set-sort
+  "Entirely replaces sort descriptors."
   [table-inst sort-descriptors]
-  {:pre [(s/valid? ::sort-descriptors sort-descriptors)]}
-  (prn "sorting!" sort-descriptors)
+  {:pre [(valid? ::sort-descriptors sort-descriptors)]
+   :post [(valid? ::table-inst %)]}
   (-> table-inst
       (assoc :sort-descriptors sort-descriptors)
       (update-table-inst)))

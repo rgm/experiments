@@ -2,48 +2,42 @@
   (:require
    [clojure.pprint :as pp]
    [clojure.spec.alpha :as s]
-   [clojure.string :as str]
-   [my.rtable2 :as rt]
+   [opengb.spork.hiccup-datagrid :as hg]
    [reagent.core :as rg]))
 
 (defn BasicTable
   [props]
   (let [{:keys [cols data]} props
-        *table-inst (rg/atom (rt/make-table-inst {:cols cols :data data}))]
+        *dgrid (rg/atom (hg/make-dgrid {:cols cols :data data}))]
     (fn [_]
-      (let [ti (deref *table-inst)
-            {:keys [get-table-props
+      (let [{:keys [get-table-props
                     get-thead-props
                     get-tbody-props
-                    get-header-groups
+                    get-col-groups
                     prepare-row
-                    get-page]} (rt/make-accessors ti)]
+                    get-page]} (hg/make-table-accessors @*dgrid)
+            toggle-sort (hg/make-ratom-sort-toggle-fn *dgrid)]
         [:<>
          [:table (merge (get-table-props)
                         {:class "border w-full table-auto"})
 
           [:thead (get-thead-props)
-           (for [header-group (get-header-groups)
-                 :let [{:keys [idx get-header-group-props get-headers]} header-group]]
+           (for [col-group (get-col-groups)
+                 :let [{:keys [idx get-col-group-props get-cols]} col-group]]
              ^{:key idx}
-             [:tr (get-header-group-props)
-              (for [h (get-headers header-group)
-                    :let [{:keys [idx get-header-props get-header-hiccup
-                                  can-sort? is-sorted? is-sorted-desc?]} h]]
+             [:tr (get-col-group-props)
+              (for [col (get-cols col-group)
+                    :let [{:keys [idx get-col-props get-header-hiccup
+                                  can-sort? is-sorted? is-sorted-desc?]} col]]
                 ^{:key idx}
                 [:th
-                 (get-header-props)
+                 (get-col-props)
                  (get-header-hiccup)
-                 (when (and can-sort? is-sorted?) (if is-sorted-desc? " ↓" " ↑"))
+                 (when (and can-sort? is-sorted?) (if is-sorted-desc? "↓" "↑"))
                  (when can-sort?
                    ;; FIXME use :Sort
                    [:<>
-                    [:button {:onClick #(swap! *table-inst
-                                               rt/set-sort
-                                               [{:id (:id h)
-                                                 :desc? (and is-sorted?
-                                                             (not is-sorted-desc?))}])}
-                     "SORT"]])])])]
+                    [:button {:onClick #(toggle-sort col)} "SORT"]])])])]
 
           [:tbody (get-tbody-props)
            (for [row (map prepare-row (get-page))
@@ -59,14 +53,14 @@
           [:summary "Data"]
           [:pre
            {:class "text-sm"}
-           (with-out-str (pp/pprint @*table-inst))]]]))))
+           (with-out-str (pp/pprint @*dgrid))]]]))))
 
-(def simplest-props (let [header-fn (fn [_table-inst col]
+(def simplest-props (let [header-fn (fn [_dgrid col]
                                       (if (= (:id col) "eighth")
                                         [:div {:class "bg-blue-100"} "col 8"]
                                         [:div {:class "bg-red-300"} "???"]))
-                          cell-fn (fn [_ cell]
-                                    {:pre (s/valid? ::rt/cell cell)}
+                          cell-fn (fn [_dgrid cell]
+                                    {:pre (s/valid? ::hg/cell cell)}
                                     (let [value (:val cell)]
                                       [:div {:class [(if (odd? value)
                                                        "text-blue-500"
@@ -74,9 +68,9 @@
                                                      (when (zero? (rem value 3))
                                                        "bg-yellow-100")]}
                                        value]))]
-                      {:data (partition 10 (range 200))
+                      {:data (partition 10 (shuffle (range 200)))
                        :cols [{:Header "col 1" :Cell cell-fn}
-                              {:Header "col 2" :Cell cell-fn}
+                              {:Header "col 2" :Cell cell-fn :Sort true}
                               {:Header "col 3" :Cell cell-fn}
                               {:Header header-fn :Sort true}
                               {:Header "col 5" :Cell cell-fn}
@@ -121,4 +115,4 @@
                         {:w "C" :x 3 :y 4 :z 8}]}]))
 
 (comment
-  (s/explain ::rt/args simplest-props))
+  (s/explain ::hg/args simplest-props))
