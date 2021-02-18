@@ -39,7 +39,9 @@
     (when-not result (s/explain spec x))
     result))
 
-(defn- hiccup? [x] (or (string? x) (number? x) (fn? x)))
+(defn- component? [?f] (fn? ?f))
+
+(defn- hiccup? [x] (or (string? x) (number? x) (component? x)))
 
 ;; }}}
 
@@ -59,13 +61,15 @@
         :ret  ::table-accessors)
 
 (s/def ::raw-sample (s/or :vec (s/and (s/coll-of hiccup?) sequential?)
-                          :map (s/map-of keyword? hiccup?)))
+                          :map (s/map-of keyword? any?)))
 
 (s/def ::Header hiccup?)
 
-(s/def ::Sort fn?)
+(s/def ::Sort component?)
 
-(s/def ::Filter fn?)
+(s/def ::Filter component?)
+
+(s/def ::Val component?)
 
 (s/def ::raw-col (s/keys :opt-un [::Header ::id ::accessor ::Sort ::Filter]))
 
@@ -80,7 +84,7 @@
 
 (s/def ::col (s/keys :req-un [::id]
                      :opt-un [::header-props ::Footer ::footer-props
-                              ::Header ::Cell]))
+                              ::Header ::Val ::Cell]))
 
 (s/def ::row (s/keys :req-un [::idx ::cells]
                      :opt-un [::row-props]))
@@ -88,7 +92,7 @@
 (s/def ::cell (s/keys :req-un [::col ::row ::val ::Cell]
                       :opt-un [::cell-props]))
 
-(s/def ::id (s/or :num number? :str string?))
+(s/def ::id (s/or :num number? :str string? :key keyword?))
 (s/def :my.rtable2/desc? boolean?)
 (s/def ::sort-descriptor (s/keys :req-un [::id :my.rtable2/desc?]))
 (s/def ::sort-descriptors (s/+ ::sort-descriptor))
@@ -99,8 +103,12 @@
                                          "")
                         :Cell          (fn [_dgrid cell-model]
                                          (str (:val cell-model)))
+                        :Val           (fn [val] (str val))
                         :get-col-props (fn [] {:role "columnheader"})
-                        :filter-pred   contains?}) ;; default to set membership
+                        :filter-pred   (fn [valset val]
+                                         ;; default to set membership check
+                                         ;; most excel-like
+                                         (contains? valset val))})
 
 (def default-row-model {:get-row-props (fn [] {:role "row"})})
 
@@ -122,9 +130,9 @@
                                        :col col
                                        :val value})
                               ;; tack on render fn later so we can close over the cell
-                              ;; and provide a zero-arg render fn
-                              cell' (assoc cell :render-cell
-                                           (fn [] ((:Cell col) dgrid cell)))]
+                              ;; and provide zero-arg render fns
+                              cell' (assoc cell :render-cell (fn render-cell []
+                                                               ((:Cell col) dgrid cell)))]
                           (conj acc cell')))
                       []
                       prepared-cols)]
@@ -144,6 +152,7 @@
                      :id          (or (:id col) i)
                      :accessor    accessor
                      ;; add values for filters' use
+                     ;; OPTIMIZE can we just accept these? What about 10,000 row tables?
                      :vals        (into #{} (map (comp accessor :data)) data)
                      :can-sort?   can-sort?
                      :can-filter? can-filter?))))
@@ -161,7 +170,6 @@
                          (assoc :render-header (if (fn? ?hiccup-fn)
                                                      (fn [] (?hiccup-fn dgrid col))
                                                      (fn [] (str ?hiccup-fn))))
-                         (assoc :render-val (:Val col))
                          (assoc :render-sorter (:Sort col))
                          (assoc :render-filterer (:Filter col)))))
                  cols))))
@@ -194,7 +202,7 @@
    :filters has form {col-id #{val1 val2}}"
   [dgrid]
   {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::dgrid %)]}
-  (prn "RUN FILTERING")
+  (prn "TODO ADD FILTER DATA")
   dgrid)
 
 (defn prepare-col-groups
@@ -206,23 +214,45 @@
            :get-col-group-props (fn [] {:role "row"})
            :get-cols            (fn [] (:prepared-cols dgrid))}]))
 
-(defn filter-rows
-  [dgrid]
-  {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::dgrid %)]}
-  (assoc dgrid :rows (:prepared-data dgrid)))
-
 (defn get-col
   [dgrid col-id]
   ;; OPTIMIZE don't do a linear scan, use a table?
   (let [cols (:prepared-cols dgrid)]
     (some->> cols (filter (fn [col] (= col-id (:id col)))) first)))
 
+(defn make-compound-filter
+  "For each column in filters, make a predicate. The resulting filter is
+   compound-filter :: row -> boolean and is an AND of the individual filters.
+   We use the :filter-pred for each column, and `filters` is of the form
+   {\"col-id\" #{:a-val :another-val} ,,,}"
+  [dgrid filters]
+  (let [make-pred (fn [[col-id val-set]]
+                     (let [col (get-col dgrid col-id)
+                           {:keys [filter-pred accessor]} col]
+                       (fn [row]
+                         (let [val-to-check (accessor (:data row))
+                               filter? (filter-pred val-set val-to-check)]
+                           (prn val-to-check filter? row col val-set)
+                         filter?))))]
+    (apply every-pred (map make-pred filters))))
+
+(defn filter-rows
+  "Set :rows to reflect the various filters."
+  [dgrid]
+  {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::dgrid %)]}
+  (let [filters (:filters dgrid)
+        prepared-data (:prepared-data dgrid)]
+    (if (empty? filters)
+      (assoc dgrid :rows prepared-data)
+      (let [compound-filter (make-compound-filter dgrid filters)]
+        (assoc dgrid :rows (filter compound-filter prepared-data))))))
+
 (defn sort-rows
   "Sort the rows per the sort descriptors in :sort-descriptors."
   [dgrid]
   {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::dgrid %)]}
   ;; TODO extend this; does single descriptor at the moment
-  (let [data        (:prepared-data dgrid)
+  (let [data        (:rows dgrid)
         descriptors (:sort-descriptors dgrid)]
     (if (empty? descriptors)
       (assoc dgrid :rows data)
@@ -289,17 +319,23 @@
 (defn add-filter
   [dgrid col val]
   {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::dgrid %)]}
-  (update-in dgrid [:filters (:id col)] (fnil conj #{}) val))
+  (-> dgrid
+      (update-in [:filters (:id col)] (fnil conj #{}) val)
+      (derive-dgrid-state)))
 
 (defn remove-filter
   [dgrid col val]
   {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::dgrid %)]}
-  (update-in dgrid [:filters (:id col)] (fnil disj #{}) val))
+  (-> dgrid
+      (update-in [:filters (:id col)] (fnil disj #{}) val)
+      (derive-dgrid-state)))
 
 (defn clear-filters
   [dgrid col]
   {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::dgrid %)]}
-  (update dgrid :filters #(dissoc % (:id col))))
+  (-> dgrid
+      (update :filters #(dissoc % (:id col)))
+      (derive-dgrid-state)))
 
 ;; "table accessors" are specifically about rendering html tables.
 ;; They're fns so that we can delay everything to render time
@@ -317,6 +353,13 @@
    :get-col-groups  (fn []    (get dgrid :col-groups))
    :get-page        (fn []    (get dgrid :page))
    :prepare-row     (fn [row] (prepare-row dgrid row))})
+
+(defn get-prepared-data
+  "Return the original data, after filters and sorts have been applied. Useful
+   for companion views (eg. charts) that should respect what data is actually
+   visible."
+  [dgrid]
+  (some->> dgrid :rows (map :data)))
 
 ;; mutators aren't super satisfying; we need the mutation outside of the
 ;; namespace and have to write custom fns maybe we provide adapters? ... a fn
@@ -340,6 +383,37 @@
   {:toggle-sort         (make-ratom-sort-toggle-fn *dgrid)
    :add-filter-value    (fn [col val] (swap! *dgrid add-filter col val))
    :remove-filter-value (fn [col val] (swap! *dgrid remove-filter col val))
-   :clear-filters       (fn [col] (swap! *dgrid clear-filters col))})
+   :filter-none         (fn [col] (prn "TODO filter none" col))
+   :filter-all          (fn [col] (swap! *dgrid clear-filters col))})
+
+(defn GenericTable
+  "Placeholder and demo for how to do basic setup of a custom component. Feel
+   free to copy and paste into your own project and modify as needed."
+  [dgrid]
+  (let [{:keys [get-table-props
+                get-thead-props
+                get-tbody-props
+                get-col-groups
+                prepare-row
+                get-page]} (make-table-accessors dgrid)]
+    [:table (get-table-props)
+     [:thead (get-thead-props)
+      (for [col-group (get-col-groups)
+            :let [{:keys [idx get-col-group-props get-cols]} col-group]]
+        ^{:key idx}
+        [:tr (get-col-group-props)
+         (for [col (get-cols col-group)
+               :let [{:keys [idx get-col-props render-header]} col]]
+           ^{:key idx}
+           [:th (get-col-props) (render-header)])])]
+     [:tbody (get-tbody-props)
+      (for [row (map prepare-row (get-page))
+            :let [{:keys [idx get-row-props get-cells]} row]]
+        ^{:key idx}
+        [:tr (get-row-props)
+         (for [cell (get-cells)
+               :let [{:keys [idx get-cell-props render-cell]} cell]]
+           ^{:key idx}
+           [:td (get-cell-props) (render-cell)])])]]))
 
 ;; vi:fdm=marker
