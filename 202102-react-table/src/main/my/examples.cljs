@@ -10,16 +10,61 @@
   [:button {:class ["border" "px-2" "text-sm"] :onClick #(toggle-sort col)}
    "sort"])
 
+(defn IndeterminateableCheckbox
+  "Pass the usual {:checked bool} for checked, or {:checked \"indeterminate\"}
+   for the indeterminate state. This can't be set with HTML attrs."
+  [_]
+  (let [*input (atom nil)
+        set-indeterminate (fn [c] (let [props (rg/props c)]
+                                    (set! (.-indeterminate @*input)
+                                          (= (:checked props) "indeterminate"))))]
+    (rg/create-class
+     {:component-did-mount  set-indeterminate
+      :component-did-update set-indeterminate
+      :reagent-render       (fn [props]
+                              [:input (assoc props
+                                             :type "checkbox"
+                                             :ref #(reset! *input %))])})))
+
 (defn FilterByVals
   [mutators col]
-  (let [{:keys [add-filter remove-filter clear-filters]} mutators
-        {values :vals render-val :render-val} col]
-    [:ul
-     [:li [:label [:input {:type "checkbox"}] "All"]]
-     (for [x (sort values)]
-       ^{:key x}
-       [:li [:label [:input {:type "checkbox"}]
-             (render-val x)]])]))
+  (let [{:keys [add-filter-value
+                remove-filter-value
+                filter-all
+                filter-none]} mutators
+        {values :distinct-vals
+         Val :Val
+         is-filtering? :is-filtering?
+         filter-val-set :filter-val-set} col]
+    [:<>
+     [:ul
+      ;; behaviour of "all" checkbox is a bit complex ... matching Excel's
+      (let [all-state (cond
+                        (= values filter-val-set) :checked
+                        (empty? filter-val-set)   :not-checked
+                        is-filtering?           :indeterminate)
+            checked? (case all-state
+                       :checked true
+                       :not-checked false
+                       :indeterminate "indeterminate")
+            on-change (case all-state
+                        :checked #(filter-none col)
+                        :not-checked #(filter-all col)
+                        :indeterminate #(filter-all col))]
+        [:li [:label [IndeterminateableCheckbox
+                      {:checked checked?
+                       :onChange on-change}]
+              "All"]])
+      (for [x (sort values)]
+        ^{:key x}
+        [:li [:label
+              [:input {:type "checkbox"
+                       :value x
+                       :checked (contains? filter-val-set x)
+                       :onChange (if (contains? filter-val-set x)
+                                   #(remove-filter-value col x)
+                                   #(add-filter-value col x))}]
+              [Val x]]])]]))
 
 (defn BasicTable
   [props]
@@ -111,15 +156,22 @@
 
 (defn MapTable
   []
-  [BasicTable {:cols [{:id "w" :accessor :w}
+  [BasicTable {:cols [{:id "w" :accessor :w
+                       :Filter FilterByVals
+                       }
                       {:id "x" :accessor :x :Header "Xs"
+                       :Filter FilterByVals
                        :Sort ToggleSort}
                       {:id "y" :accessor :y :Header "Ys"
                        :Sort ToggleSort
                        :Filter FilterByVals
-                       :Cell (fn [_dgrid {:keys [val]}] [:div val "\""])
-                       :Val (fn [val] [:span val "\""])} ;; so filter can use it too
-                      {:id "z" :accessor :z :Header "Zs" :Sort ToggleSort}]
+                       :Cell (fn [_dgrid {:keys [val]}]
+                               [:div {:class "text-pink-500"} val "\""])
+                       :Val (fn [val]
+                              [:span val "\""])} ;; split out so filter can use it too
+                      {:id "z" :accessor :z :Header "Zs"
+                       :Sort ToggleSort
+                       :Filter FilterByVals}]
                :data [{:w "A" :x 1 :y 6 :z 7}
                       {:w "B" :x 2 :y 5 :z 9}
                       {:w "C" :x 3 :y 4 :z 8}

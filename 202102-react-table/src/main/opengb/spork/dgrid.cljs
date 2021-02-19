@@ -143,19 +143,20 @@
   [data cols]
   (map-indexed
    (fn [i col]
-     (let [can-sort? (boolean (:Sort col))
-           can-filter? (boolean (:Filter col))
-           accessor (or (:accessor col) (fn [d] (nth d i)))]
+     (let [can-sort?     (boolean (:Sort col))
+           can-filter?   (boolean (:Filter col))
+           accessor      (or (:accessor col) (fn [d] (nth d i)))
+                           ;; OPTIMIZE can we just accept these as input?
+                           ;; What about 10,000 row tables?
+           distinct-vals (into #{} (map (comp accessor :data)) data)]
        (merge default-col-model
               (assoc col
-                     :idx         i
-                     :id          (or (:id col) i)
-                     :accessor    accessor
-                     ;; add values for filters' use
-                     ;; OPTIMIZE can we just accept these? What about 10,000 row tables?
-                     :vals        (into #{} (map (comp accessor :data)) data)
-                     :can-sort?   can-sort?
-                     :can-filter? can-filter?))))
+                     :idx           i
+                     :id            (or (:id col) i)
+                     :accessor      accessor
+                     :distinct-vals distinct-vals ;; for filtering UI's use
+                     :can-sort?     can-sort?
+                     :can-filter?   can-filter?))))
    cols))
 
 (defn add-header-render-fns
@@ -174,8 +175,9 @@
                          (assoc :render-filterer (:Filter col)))))
                  cols))))
 
-(defn add-col-sort-data
-  "Annotate the cols with current sorting state.
+(defn add-sort-state-to-cols
+  "Annotate the cols with current sorting state to that eg. the header UI can
+   reflect it.
 
    :sort-descriptors has form [{:id n :desc? bool},,,]"
   [dgrid]
@@ -196,14 +198,23 @@
                               :is-sorted-desc? (= :desc sort-k))))
                    cols)))))
 
-(defn add-col-filter-data
-  "Annotate the cols with current filtering state.
+(defn add-filter-state-to-cols
+  "Annotate the cols with current filtering state so that eg. the header UI can
+   reflect it.
 
    :filters has form {col-id #{val1 val2}}"
   [dgrid]
   {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::dgrid %)]}
-  (prn "TODO ADD FILTER DATA")
-  dgrid)
+  (let [filters (:filters dgrid)]
+    (update dgrid :prepared-cols
+            (fn [cols]
+              (map (fn [col]
+                     (let [values  (:distinct-vals col)
+                           val-set (get filters (:id col) #{})]
+                       (assoc col
+                              :filter-val-set val-set
+                              :is-filtering? (not= val-set values))))
+                   cols)))))
 
 (defn prepare-col-groups
   "Only does single nesting for now."
@@ -232,7 +243,6 @@
                        (fn [row]
                          (let [val-to-check (accessor (:data row))
                                filter? (filter-pred val-set val-to-check)]
-                           (prn val-to-check filter? row col val-set)
                          filter?))))]
     (apply every-pred (map make-pred filters))))
 
@@ -272,29 +282,41 @@
   ;; TODO implement me - no pagination yet
   (assoc dgrid :page (:rows dgrid)))
 
+(defn filter-all-for-cols
+  "Start all filters off with filter-all. Make sure this happens *after*
+   prepare-cols has boiled down the column values for the provided data."
+  [prepared-cols]
+  (reduce (fn [acc col]
+                 (if (:can-filter? col)
+                   (assoc acc (:id col) (set (:distinct-vals col)))
+                   acc))
+               {} prepared-cols))
+
 (defn derive-dgrid-state
   [dgrid]
   {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::dgrid %)]}
   (-> dgrid
-      (add-col-sort-data)
+      (add-filter-state-to-cols)
       (filter-rows)
+      (add-sort-state-to-cols)
       (sort-rows)
       (trim-page)
       (add-header-render-fns)
       (prepare-col-groups)))
 
 (defn make-dgrid
-  [{:keys [data cols] :as args}]
+  [{:keys [data cols sort-descriptors] :as args}]
   {:pre [(valid? ::args args)] :post [(valid? ::dgrid %)]}
   (let [prepared-data (map-indexed (fn [i x] {:idx i :data x}) data)
+        prepared-cols (prepare-cols prepared-data cols)
         base-dgrid (assoc args
                           :table-props      {:role "table"}
                           :thead-props      {:role "rowgroup"}
                           :tbody-props      {:role "rowgroup"}
                           :prepared-data    prepared-data
-                          :prepared-cols    (prepare-cols prepared-data cols)
-                          :sort-descriptors []
-                          :filters          {})]
+                          :prepared-cols    prepared-cols
+                          :sort-descriptors (or sort-descriptors [])
+                          :filters          (filter-all-for-cols prepared-cols))]
     (derive-dgrid-state base-dgrid)))
 
 (defn set-sort
@@ -316,6 +338,21 @@
       (assoc :sort-descriptors [])
       (derive-dgrid-state)))
 
+;; filter mutators
+
+;; filters are a little weird in that there's no real "filter none" state ...
+;; what would be the point? You'd just end up with an empty table. So the
+;; design choice here for users is to make filtering with #{} functionally
+;; equivalent to filtering with the set of a column's distinct values: you
+;; get all of the rows. This is Excel's behaviour. It's implemented as such
+;; in `filter-rows` by special-casing an empty #{} to not filter at all.
+;;
+;; But there *is* a useful distinction in the filtering UI: being able to
+;; filter-none, *then* add one filter lets you isolate a value's rows with two
+;; clicks. Being able to filter-all then remove one filter lets you hide a
+;; value's rows with two clicks. Otherwise, one or the other would require
+;; (count distinct-vals) - 1 clicks.
+
 (defn add-filter
   [dgrid col val]
   {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::dgrid %)]}
@@ -330,11 +367,20 @@
       (update-in [:filters (:id col)] (fnil disj #{}) val)
       (derive-dgrid-state)))
 
-(defn clear-filters
+(defn filter-none
+  "Set col filter to none of the column's values."
   [dgrid col]
   {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::dgrid %)]}
   (-> dgrid
       (update :filters #(dissoc % (:id col)))
+      (derive-dgrid-state)))
+
+(defn filter-all
+  "Set col filter to all of the column's values."
+  [dgrid col]
+  {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::dgrid %)]}
+  (-> dgrid
+      (assoc-in [:filters (:id col)] (set (:distinct-vals col)))
       (derive-dgrid-state)))
 
 ;; "table accessors" are specifically about rendering html tables.
@@ -383,8 +429,8 @@
   {:toggle-sort         (make-ratom-sort-toggle-fn *dgrid)
    :add-filter-value    (fn [col val] (swap! *dgrid add-filter col val))
    :remove-filter-value (fn [col val] (swap! *dgrid remove-filter col val))
-   :filter-none         (fn [col] (prn "TODO filter none" col))
-   :filter-all          (fn [col] (swap! *dgrid clear-filters col))})
+   :filter-all          (fn [col] (swap! *dgrid filter-all col))
+   :filter-none         (fn [col] (swap! *dgrid filter-none col))})
 
 (defn GenericTable
   "Placeholder and demo for how to do basic setup of a custom component. Feel
