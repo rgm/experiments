@@ -364,7 +364,14 @@
   [dgrid col val]
   {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::dgrid %)]}
   (-> dgrid
-      (update-in [:filters (:id col)] (fnil disj #{}) val)
+      (update :filters (fn [filters]
+                         (let [val-set (get filters (:id col))
+                               val-set' (disj val-set val)]
+                           ;; don't leave an empty set around; it'll futz with
+                           ;; reductions elsewhere ... dissoc the key entirely
+                           (if (empty? val-set')
+                             (dissoc filters (:id col))
+                             (assoc filters (:id col) val-set')))))
       (derive-dgrid-state)))
 
 (defn filter-none
