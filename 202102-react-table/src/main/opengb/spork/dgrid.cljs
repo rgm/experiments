@@ -105,6 +105,7 @@
                                          (str (:val cell-model)))
                         :Val           (fn [val] (str val))
                         :get-col-props (fn [] {:role "columnheader"})
+                        :sort-fn       identity ;; do this to the accessor val for sort-by
                         :filter-pred   (fn [valset val]
                                          ;; default to set membership check
                                          ;; most excel-like
@@ -270,7 +271,8 @@
             {col-id :id desc? :desc?} descriptor
             col         (get-col dgrid col-id)
             accessor    (:accessor col)
-            sorted-rows (sort-by #(-> % :data accessor) data)]
+            sort-fn     (:sort-fn col)
+            sorted-rows (sort-by #(-> % :data accessor sort-fn) data)]
         (assoc dgrid :rows (if desc?
                                   (reverse sorted-rows)
                                   sorted-rows))))))
@@ -439,6 +441,8 @@
    :filter-all          (fn [col] (swap! *dgrid filter-all col))
    :filter-none         (fn [col] (swap! *dgrid filter-none col))})
 
+;; * Example reagent UI {{{1
+
 (defn GenericTable
   "Placeholder and demo for how to do basic setup of a custom component. Feel
    free to copy and paste into your own project and modify as needed."
@@ -468,5 +472,7 @@
                :let [{:keys [idx get-cell-props render-cell]} cell]]
            ^{:key idx}
            [:td (get-cell-props) (render-cell)])])]]))
+
+;; }}}
 
 ;; vi:fdm=marker
