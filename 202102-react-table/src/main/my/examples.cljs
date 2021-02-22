@@ -77,8 +77,10 @@
                     get-col-groups
                     prepare-row
                     get-page]} (dgrid/make-table-accessors @*dgrid)
-            mutators (dgrid/make-ratom-mutators *dgrid)]
+            mutators (dgrid/make-ratom-mutators *dgrid)
+            reset-filters (dgrid/make-ratom-reset-filters-fn *dgrid)]
         [:<>
+         [:button {:onClick reset-filters} "Clear all filters"]
          [:table (merge (get-table-props)
                         {:class "border w-full table-auto"})
 

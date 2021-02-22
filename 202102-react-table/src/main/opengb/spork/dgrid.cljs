@@ -385,12 +385,25 @@
       (derive-dgrid-state)))
 
 (defn filter-all
-  "Set col filter to all of the column's values."
-  [dgrid col]
-  {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::dgrid %)]}
-  (-> dgrid
-      (assoc-in [:filters (:id col)] (set (:distinct-vals col)))
-      (derive-dgrid-state)))
+  "Set col filter to all of the column's values. Do all columns if no col
+   supplied."
+  ([dgrid col]
+   {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::dgrid %)]}
+   (-> dgrid
+       (assoc-in [:filters (:id col)] (set (:distinct-vals col)))
+       (derive-dgrid-state)))
+  ([dgrid]
+   {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::dgrid %)]}
+   (let [filters (->> dgrid
+                      :prepared-cols
+                      (filter :can-filter?)
+                      (map (fn [{:keys [id distinct-vals]}]
+                                 [id distinct-vals])
+                               (:prepared-cols dgrid))
+                      (into {}))]
+     (-> dgrid
+         (assoc :filters filters)
+         (derive-dgrid-state)))))
 
 ;; "table accessors" are specifically about rendering html tables.
 ;; They're fns so that we can delay everything to render time
@@ -440,6 +453,12 @@
    :remove-filter-value (fn [col val] (swap! *dgrid remove-filter col val))
    :filter-all          (fn [col] (swap! *dgrid filter-all col))
    :filter-none         (fn [col] (swap! *dgrid filter-none col))})
+
+(defn make-ratom-reset-filters-fn
+  "Make a reset-all-filters fn for ratom strategy."
+  [*dgrid]
+  {:pre [(instance? reagent.ratom.RAtom *dgrid)]}
+  (fn [] (swap! *dgrid filter-all)))
 
 ;; * Example reagent UI {{{1
 
