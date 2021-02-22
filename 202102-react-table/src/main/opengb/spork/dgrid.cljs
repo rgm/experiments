@@ -111,7 +111,7 @@
                                          ;; most excel-like
                                          (contains? valset val))})
 
-(def default-row-model {:get-row-props (fn [] {:role "row"})})
+(def default-row-model {})
 
 (def default-cell-model {:get-cell-props (fn [] {:role "cell"})})
 
@@ -121,6 +121,8 @@
   [dgrid row]
   (let [row-data      (:data row)
         prepared-cols (:prepared-cols dgrid)
+        get-row-props (let [f (or (:row-props dgrid) (fn [_ _] nil))]
+                        (fn [] (merge (f dgrid row) {:role "row"})))
         cells (reduce (fn [acc col]
                         (let [{:keys [accessor idx]} col
                               value  (accessor row-data)
@@ -138,7 +140,9 @@
                       []
                       prepared-cols)]
     (merge default-row-model
-           (assoc row :get-cells (fn [] cells)))))
+           (assoc row
+                  :get-row-props get-row-props
+                  :get-cells (fn [] cells)))))
 
 (defn prepare-cols
   [data cols]
@@ -307,7 +311,7 @@
       (prepare-col-groups)))
 
 (defn make-dgrid
-  [{:keys [data cols sort-descriptors] :as args}]
+  [{:keys [data cols sort-descriptors row-props] :as args}]
   {:pre [(valid? ::args args)] :post [(valid? ::dgrid %)]}
   (let [prepared-data (map-indexed (fn [i x] {:idx i :data x}) data)
         prepared-cols (prepare-cols prepared-data cols)
@@ -315,6 +319,7 @@
                           :table-props      {:role "table"}
                           :thead-props      {:role "rowgroup"}
                           :tbody-props      {:role "rowgroup"}
+                          :row-props        (or row-props)
                           :prepared-data    prepared-data
                           :prepared-cols    prepared-cols
                           :sort-descriptors (or sort-descriptors [])

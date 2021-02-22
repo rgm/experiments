@@ -68,8 +68,10 @@
 
 (defn BasicTable
   [props]
-  (let [{:keys [cols data]} props
-        *dgrid (rg/atom (dgrid/make-dgrid {:cols cols :data data}))]
+  (let [{:keys [cols data row-props]} props
+        *dgrid (rg/atom (dgrid/make-dgrid {:cols cols
+                                           :data data
+                                           :row-props row-props}))]
     (fn [_]
       (let [{:keys [get-table-props
                     get-thead-props
@@ -159,8 +161,7 @@
 (defn MapTable
   []
   [BasicTable {:cols [{:id "w" :accessor :w
-                       :Filter FilterByVals
-                       }
+                       :Filter FilterByVals}
                       {:id "x" :accessor :x :Header "Xs"
                        :Filter FilterByVals
                        :Sort ToggleSort}
@@ -179,7 +180,10 @@
                       {:w "C" :x 3 :y 4 :z 8}
                       {:w "D" :x 1 :y 6 :z 7}
                       {:w "E" :x 2 :y 5 :z 9}
-                      {:w "F" :x 3 :y 4 :z 8}]}])
+                      {:w "F" :x 3 :y 4 :z 8}]
+               :row-props (fn [_ row] (if (odd? (:idx row))
+                                        {:class "bg-blue-500"}
+                                        {}))}])
 
 (comment
   (s/explain ::dgrid/args simplest-props))
