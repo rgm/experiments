@@ -135,7 +135,7 @@
                               ;; tack on render fn later so we can close over the cell
                               ;; and provide zero-arg render fns
                               cell' (assoc cell :render-cell (fn render-cell []
-                                                               ((:Cell col) dgrid cell)))]
+                                                               [(:Cell col) dgrid cell]))]
                           (conj acc cell')))
                       []
                       prepared-cols)]

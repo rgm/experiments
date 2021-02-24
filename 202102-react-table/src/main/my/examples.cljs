@@ -160,30 +160,43 @@
 
 (defn MapTable
   []
-  [BasicTable {:cols [{:id "w" :accessor :w
-                       :Filter FilterByVals}
-                      {:id "x" :accessor :x :Header "Xs"
-                       :Filter FilterByVals
-                       :Sort ToggleSort}
-                      {:id "y" :accessor :y :Header "Ys"
-                       :Sort ToggleSort
-                       :Filter FilterByVals
-                       :Cell (fn [_dgrid {:keys [val]}]
-                               [:div {:class "text-pink-500"} val "\""])
-                       :Val (fn [val]
-                              [:span val "\""])} ;; split out so filter can use it too
-                      {:id "z" :accessor :z :Header "Zs"
-                       :Sort ToggleSort
-                       :Filter FilterByVals}]
-               :data [{:w "A" :x 1 :y 6 :z 7}
-                      {:w "B" :x 2 :y 5 :z 9}
-                      {:w "C" :x 3 :y 4 :z 8}
-                      {:w "D" :x 1 :y 6 :z 7}
-                      {:w "E" :x 2 :y 5 :z 9}
-                      {:w "F" :x 3 :y 4 :z 8}]
-               :row-props (fn [_ row] (if (odd? (:idx row))
-                                        {:class "bg-blue-500"}
-                                        {}))}])
+  (let [*foo (rg/atom #{})]
+    (add-watch *foo :my-watch (fn [k reference old-state new-state]
+                                (prn "changed" @*foo)
+                                #_(prn "Changed!" new-state)))
+    [BasicTable {:cols [{:id "w" :accessor :w
+                         :Filter FilterByVals}
+                        {:id "x" :accessor :x :Header "Xs"
+                         :Filter FilterByVals
+                         :Sort ToggleSort}
+                        {:id "y" :accessor :y :Header "Ys"
+                         :Sort ToggleSort
+                         :Filter FilterByVals
+                         :Cell (fn [_dgrid {:keys [val]}]
+                                 [:div {:class "text-pink-500"} val "\""])
+                         :Val (fn [val]
+                                [:span val "\""])} ;; split out so filter can use it too
+                        {:id "z" :accessor :z :Header "Zs"
+                         :Sort ToggleSort
+                         :Filter FilterByVals}
+                        {:id "action"
+                         :accessor identity
+                         :Cell (fn [_dgrid cell]
+                                 (let [value (:val cell)]
+                                   [:button {:onClick #(swap! *foo (fn [s] (if (s value)
+                                                                             (disj s value)
+                                                                             (conj s value))))}
+                                    "reactive"
+                                    (str @*foo)]))}]
+                 :data [{:w "A" :x 1 :y 6 :z 7}
+                        {:w "B" :x 2 :y 5 :z 9}
+                        {:w "C" :x 3 :y 4 :z 8}
+                        {:w "D" :x 1 :y 6 :z 7}
+                        {:w "E" :x 2 :y 5 :z 9}
+                        {:w "F" :x 3 :y 4 :z 8}]
+                 :row-props (fn [_ row] (if (odd? (:idx row))
+                                          {:class "bg-blue-500"}
+                                        {}))}]))
 
 (comment
   (s/explain ::dgrid/args simplest-props))
