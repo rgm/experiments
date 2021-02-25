@@ -1,0 +1,3 @@
+= Headless chrome example
+
+Rendering PDF from an javascript-heavy HTML page by driving headless Chrome from a ring server.
