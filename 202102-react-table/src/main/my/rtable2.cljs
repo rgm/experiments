@@ -83,9 +83,9 @@
                               ;; and provide a zero-arg render fn
                               cell' (assoc cell :get-cell-hiccup
                                            (fn [] ((:Cell col) table-inst cell)))]
-                           (conj acc cell')))
-                       []
-                       prepared-cols)]
+                          (conj acc cell')))
+                      []
+                      prepared-cols)]
     (merge default-row-model
            (assoc row :get-cells (fn [] cells)))))
 
@@ -125,12 +125,12 @@
   {:pre [(valid? ::table-inst table-inst)]
    :post [(valid? ::table-inst %)]}
   (let [sort-lookup (into {} (map (fn [{:keys [id desc?]}]
-                              [id (case desc?
+                                    [id (case desc?
                                     ;; need to disambiguate false from nil
-                                    false :asc
-                                    true :desc
-                                    nil)]))
-                    (:sort-descriptors table-inst))]
+                                          false :asc
+                                          true :desc
+                                          nil)]))
+                          (:sort-descriptors table-inst))]
     (update table-inst :prepared-cols
             (fn [cols]
               (map (fn [col]
@@ -255,7 +255,6 @@
    :get-header-groups      (fn []    (get table-inst :header-groups))
    :get-page               (fn []    (get table-inst :page))
    :prepare-row            (fn [row] (prepare-row table-inst row))})
-
 
 (s/def ::table-inst map?) ;; opaque outside
 
