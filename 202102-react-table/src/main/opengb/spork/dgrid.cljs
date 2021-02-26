@@ -58,7 +58,7 @@
 
 (s/def :opengb.spork.datagrid.raw/cols (s/nilable (s/+ ::raw-col)))
 
-(s/def :opengb.spork.datagrid.raw/page-size nat-int?)
+(s/def :opengb.spork.datagrid.raw/page-size (s/nilable nat-int?))
 
 ;; arg map to the make-dgrid fn
 (s/def ::args (s/keys :req-un [:opengb.spork.datagrid.raw/data]

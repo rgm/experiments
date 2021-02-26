@@ -167,6 +167,7 @@
                                                       "bg-yellow-100")]}
                                       value]))]
                       {:data (partition 10 (shuffle (range 200)))
+                       :page-size 5
                        :cols [{:Header "col 1" :Cell MyCell}
                               {:Header "col 2" :Cell MyCell}
                               {:Header "col 3" :Cell MyCell}

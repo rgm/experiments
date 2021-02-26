@@ -216,8 +216,8 @@
    ; [:f> FilteringTable]
 
    [:<> [H2 "Big Paginated Table"] [my.examples/BigPaginatedTable]]
-   ; [:<> [H2 "Simple map table"]] [my.examples/MapTable]
-   ; [:<> [H2 "V5"] [my.examples/SimplestExample]]
+   [:<> [H2 "Simple map table"]] [my.examples/MapTable]
+   [:<> [H2 "V5"] [my.examples/SimplestExample]]
 
    ; [H2 "Simple vector table"]
    ; [SimpleVectorTable]
