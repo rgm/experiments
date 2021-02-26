@@ -6,7 +6,7 @@
    [reagent.core       :as rg]))
 
 (defn ToggleSort
-  [{:keys [toggle-sort] :as _mutators} col]
+  [{:keys [toggle-sort] :as _sort-mutators} col]
   [:button {:class ["border" "px-2" "text-sm"] :onClick #(toggle-sort col)}
    "sort"])
 
@@ -27,11 +27,11 @@
                                              :ref #(reset! *input %))])})))
 
 (defn FilterByVals
-  [mutators col]
+  [filter-mutators col]
   (let [{:keys [add-filter-value
                 remove-filter-value
                 filter-all
-                filter-none]} mutators
+                filter-none]} filter-mutators
         {values :distinct-vals
          Val :Val
          is-filtering? :is-filtering?
@@ -66,23 +66,51 @@
                                    #(add-filter-value col x))}]
               [Val x]]])]]))
 
+(defn PaginationControl
+  [page-index page-count has-prev-page? has-next-page? pagination-mutators]
+  (let [{:keys [goto-prev-page
+                goto-next-page
+                goto-page]} pagination-mutators]
+    [:div {:class "flex"}
+     [:div "PAGE " (inc page-index) " of " page-count]
+     [:button {:class ["mx-2" "border" (when (= 0 page-index) "bg-red-500")]
+               :on-click #(goto-page 0)} "first"]
+     [:button {:class ["mx-2" "border" (when (not has-prev-page?) "text-gray-100")]
+               :disabled (not has-prev-page?) :on-click #(goto-prev-page)} "prev"]
+     [:button {:class ["mx-2" "border" (when (not has-next-page?) "text-gray-100")]
+               :disabled (not has-next-page?) :on-click #(goto-next-page)} "next"]
+     [:button {:class ["mx-2" "border" (when (= (dec page-count) page-index) "bg-red-500")]
+               :on-click #(goto-page page-count)} "last"]]))
+
 (defn BasicTable
+  "This is an example to be re-implemented per-project, to accommodate styling
+   and whether I'm using various features (eg. filtering, pagination)."
   [props]
-  (let [{:keys [cols data row-props]} props
-        *dgrid (rg/atom (dgrid/make-dgrid {:cols cols
-                                           :data data
-                                           :row-props row-props}))]
+  (let [{:keys [cols data row-props page-size page-index]} props
+        *dgrid (rg/atom (dgrid/make-dgrid {:cols       cols
+                                           :data       data
+                                           :row-props  row-props
+                                           :page-size  page-size
+                                           :page-index page-index}))]
     (fn [_]
       (let [{:keys [get-table-props
                     get-thead-props
                     get-tbody-props
                     get-col-groups
                     prepare-row
-                    get-page]} (dgrid/make-table-accessors @*dgrid)
-            mutators (dgrid/make-ratom-mutators *dgrid)
-            reset-filters (dgrid/make-ratom-reset-filters-fn *dgrid)]
+                    paginated?
+                    get-page
+                    page-index
+                    page-count
+                    has-prev-page?
+                    has-next-page?]} (dgrid/make-table-accessors @*dgrid)
+            ;; note these fns below get the ratom-wrapped dgrid, *not* the dgrid itself
+            sort-mutators (dgrid/make-ratom-sort-mutators *dgrid)
+            filter-mutators (dgrid/make-ratom-col-filter-mutators *dgrid)
+            pagination-mutators (dgrid/make-ratom-pagination-mutators *dgrid)]
         [:<>
-         [:button {:onClick reset-filters} "Clear all filters"]
+         [:button {:onClick (:reset-filters filter-mutators)} "Clear all filters"]
+
          [:table (merge (get-table-props)
                         {:class "border w-full table-auto"})
 
@@ -102,8 +130,8 @@
                  (get-col-props)
                  (render-header)
                  (when (and can-sort? is-sorted?) (if is-sorted-desc? "↓" "↑"))
-                 (when can-sort? (render-sorter mutators col))
-                 (when can-filter? (render-filterer mutators col))])])]
+                 (when can-sort? (render-sorter sort-mutators col))
+                 (when can-filter? (render-filterer filter-mutators col))])])]
 
           [:tbody (get-tbody-props)
            (for [row (map prepare-row (get-page))
@@ -115,6 +143,10 @@
                 ^{:key idx}
                 [:td (get-cell-props) (render-cell)])])]]
 
+         (when paginated?
+           [PaginationControl page-index page-count has-prev-page? has-next-page?
+            pagination-mutators])
+
          [:details {:open false}
           [:summary "Data"]
           [:pre
@@ -122,18 +154,18 @@
            (with-out-str (pp/pprint @*dgrid))]]]))))
 
 (def simplest-props (let [MyHeader (fn [_dgrid col]
-                                      (if (= (:id col) "eighth")
-                                        [:div {:class "bg-blue-100"} "col 8"]
-                                        [:div {:class "bg-red-300"} "???"]))
+                                     (if (= (:id col) "eighth")
+                                       [:div {:class "bg-blue-100"} "col 8"]
+                                       [:div {:class "bg-red-300"} "???"]))
                           MyCell (fn [_dgrid cell]
-                                    {:pre (s/valid? ::dgrid/cell cell)}
-                                    (let [value (:val cell)]
-                                      [:div {:class [(if (odd? value)
-                                                       "text-blue-500"
-                                                       "text-green-500")
-                                                     (when (zero? (rem value 3))
-                                                       "bg-yellow-100")]}
-                                       value]))]
+                                   {:pre (s/valid? ::dgrid/cell cell)}
+                                   (let [value (:val cell)]
+                                     [:div {:class [(if (odd? value)
+                                                      "text-blue-500"
+                                                      "text-green-500")
+                                                    (when (zero? (rem value 3))
+                                                      "bg-yellow-100")]}
+                                      value]))]
                       {:data (partition 10 (shuffle (range 200)))
                        :cols [{:Header "col 1" :Cell MyCell}
                               {:Header "col 2" :Cell MyCell}
@@ -196,7 +228,13 @@
                         {:w "F" :x 3 :y 4 :z 8}]
                  :row-props (fn [_ row] (if (odd? (:idx row))
                                           {:class "bg-blue-500"}
-                                        {}))}]))
+                                          {}))}]))
+
+(defn BigPaginatedTable
+  []
+  (let [props {:data (partition 10 (range 1000))
+               :page-size 10}]
+    [BasicTable props]))
 
 (comment
   (s/explain ::dgrid/args simplest-props))
