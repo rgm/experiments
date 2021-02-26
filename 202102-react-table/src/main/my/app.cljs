@@ -215,9 +215,10 @@
    ; [H2 "react-table Sortable and Filterable"]
    ; [:f> FilteringTable]
 
+   [:<> [H2 "Just numbers"]        [my.examples/JustNumbers]]
    [:<> [H2 "Big Paginated Table"] [my.examples/BigPaginatedTable]]
-   [:<> [H2 "Simple map table"]] [my.examples/MapTable]
-   [:<> [H2 "V5"] [my.examples/SimplestExample]]
+   [:<> [H2 "Simple map table"]    [my.examples/MapTable]]
+   [:<> [H2 "V5"]                  [my.examples/SimplestExample]]
 
    ; [H2 "Simple vector table"]
    ; [SimpleVectorTable]

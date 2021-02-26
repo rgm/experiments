@@ -5,6 +5,11 @@
    [opengb.spork.dgrid :as dgrid]
    [reagent.core       :as rg]))
 
+;; simplest possible example
+(defn JustNumbers []
+  [dgrid/GenericTable (dgrid/make-dgrid {:data (partition 10 (range 50))})])
+
+
 (defn ToggleSort
   [{:keys [toggle-sort] :as _sort-mutators} col]
   [:button {:class ["border" "px-2" "text-sm"] :onClick #(toggle-sort col)}
