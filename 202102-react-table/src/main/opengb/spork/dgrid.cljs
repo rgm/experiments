@@ -4,34 +4,9 @@
    Provides a state data structure for a datagrid that can be held in a reagent
    ratom or a re-frame app-db."
   (:require
-   [clojure.spec.alpha :as s]
-   [clojure.test :as t :refer [deftest testing is]]))
+   [clojure.spec.alpha :as s]))
 
-;; glossary + big concepts
-
-;; the big idea is that we have columns and rows as first-class structures, and
-;; what we toss into making a datagrid should require minimal processing.
-;; we supply some minimal columns as maps
-;; we supply data as either:
-;; a) a seq of sequentials (ie. a vector of floats, like what you'd get from a CSV) or
-;; b) a seq of maps
-
-;; a "datagrid" refers to this headless data structure ... a big nested map
-;; here with no UI dependencies.
-
-;; a "table" refers to an HTML table UI (or something similar like nested divs)
-
-;; "data" is raw rows (vector of x or map k:x) supplied by user
-
-;; a "raw column" is supplied by a user and is supplemented by make-datagrid-inst
-
-;; header, row, cell are vended by the table instance and are model objects
-;; with properties to help with display via hiccup (eg. props, render fns that
-;; generate hiccup)
-
-;; a "header" is the th equivalent of a td "cell" and acts similarly (meant for UI)
-
-;; * helpers {{{1
+;; * specs {{{1
 
 (defn- valid?
   [spec x]
@@ -43,51 +18,55 @@
 
 (defn- hiccup? [x] (or (string? x) (number? x) (component? x)))
 
-;; }}}
-
-;; * specs {{{1
-
-(s/def ::dgrid map?) ;; opaque outside, but can do better here
+(s/def ::dgrid map?)
+;; a dgrid is opaque from outside anyway (ie. we shouldn't be reaching into it
+;; but instead generating named accessors, but we should do better here.
 
 (s/def ::table-accessors (s/keys :req-un [::get-table-props
                                           ::get-thead-props
                                           ::get-tbody-props
                                           ::get-col-groups
                                           ::prepare-row
-                                          ::get-page]))
+                                          ::get-page]
+                                 :opt-un [::page-index
+                                          ::page-size
+                                          ::page-count
+                                          ::has-prev-page?
+                                          ::has-next-page?]))
 
-(s/fdef make-table-accessors
-        :args (s/cat :dgrid ::dgrid)
-        :ret  ::table-accessors)
+;; row data can be either coll of maps or coll of sequentials (eg. a csv of floats)
 
-(s/def ::raw-sample (s/or :vec (s/and (s/coll-of hiccup?) sequential?)
-                          :map (s/map-of keyword? any?)))
+(s/def ::raw-data-sample (s/or :vec (s/and (s/coll-of hiccup?) sequential?)
+                               :map (s/map-of keyword? any?)))
 
-(s/def ::Header hiccup?)
+(s/def :opengb.spork.datagrid.raw/data (s/coll-of ::raw-data-sample))
 
-(s/def ::Sort component?)
+;; columns
+(s/def ::id (s/or :num number? :str string? :key keyword?))
 
-(s/def ::Filter component?)
-
-(s/def ::Val component?)
+(s/def ::Header hiccup?)    ;; A header-generating fn :: dgrid -> column model -> hiccup
+(s/def ::Sort component?)   ;; A sorting component fn :: column model -> hiccup
+(s/def ::Filter component?) ;; A filtering component fn :: column model -> hiccup
+(s/def ::Cell component?)   ;; A UI rendering component fn :: dgrid -> cell model -> hiccup
+(s/def ::Val component?)    ;; A value-generating component fn :: x -> hiccup
 
 (s/def ::raw-col (s/keys :opt-un [::Header ::id ::accessor ::Sort ::Filter]))
 
-(s/def :opengb.spork.datagrid.raw/data (s/coll-of ::raw-sample))
+(s/def ::col (s/keys :req-un [::id]
+                     :opt-un [::idx ::header-props ::Footer ::footer-props
+                              ::Header ::Val ::Cell]))
 
 (s/def :opengb.spork.datagrid.raw/cols (s/nilable (s/+ ::raw-col)))
 
 (s/def :opengb.spork.datagrid.raw/page-size nat-int?)
 
+;; arg map to the make-dgrid fn
 (s/def ::args (s/keys :req-un [:opengb.spork.datagrid.raw/data]
                       :opt-un [:opengb.spork.datagrid.raw/cols
                                :opengb.spork.datagrid.raw/page-size]))
 
-(s/def ::col-group (s/keys :req-un [::cols] :opt-un [::col-group-props]))
-
-(s/def ::col (s/keys :req-un [::id]
-                     :opt-un [::header-props ::Footer ::footer-props
-                              ::Header ::Val ::Cell]))
+(s/def ::col-group (s/keys :req-un [::cols]
+                           :opt-un [::col-group-props]))
 
 (s/def ::row (s/keys :req-un [::idx ::cells]
                      :opt-un [::row-props]))
@@ -95,23 +74,20 @@
 (s/def ::cell (s/keys :req-un [::col ::row ::val ::Cell]
                       :opt-un [::cell-props]))
 
-(s/def ::id (s/or :num number? :str string? :key keyword?))
-(s/def :my.rtable2/desc? boolean?)
-(s/def ::sort-descriptor (s/keys :req-un [::id :my.rtable2/desc?]))
+(s/def ::desc? boolean?)
+(s/def ::sort-descriptor (s/keys :req-un [::id ::desc?]))
 (s/def ::sort-descriptors (s/+ ::sort-descriptor))
 
 ;; }}}
 
-(def default-col-model {:Header        (fn [_dgrid _col-model]
-                                         "")
-                        :Cell          (fn [_dgrid cell-model]
-                                         (str (:val cell-model)))
+(def default-col-model {:Header        (fn [_dgrid _col-model] "")
+                        :Cell          (fn [_dgrid cell-model] (str (:val cell-model)))
                         :Val           (fn [val] (str val))
                         :get-col-props (fn [] {:role "columnheader"})
                         :sort-fn       identity ;; do this to the accessor val for sort-by
                         :filter-pred   (fn [valset val]
                                          ;; default to set membership check
-                                         ;; most excel-like
+                                         ;; this is the most excel-like version
                                          (contains? valset val))})
 
 (def default-row-model {})
@@ -125,35 +101,32 @@
   (let [row-data      (:data row)
         prepared-cols (:prepared-cols dgrid)
         get-row-props (let [f (or (:row-props dgrid) (fn [_ _] nil))]
-                        (fn [] (merge (f dgrid row) {:role "row"})))
-        cells (reduce (fn [acc col]
+                        (fn get-row-props [] (merge (f dgrid row) {:role "row"})))
+        make-cell     (fn [col]
                         (let [{:keys [accessor idx]} col
                               value  (accessor row-data)
-                              cell   (merge
-                                      default-cell-model
-                                      {:idx idx
-                                       :row row
-                                       :col col
-                                       :val value})
-                              ;; tack on render fn later so we can close over the cell
-                              ;; and provide zero-arg render fns
-                              cell' (assoc cell :render-cell (fn render-cell []
-                                                               [(:Cell col) dgrid cell]))]
-                          (conj acc cell')))
-                      []
-                      prepared-cols)]
+                              cell   (merge default-cell-model
+                                            {:idx idx
+                                             :row row
+                                             :col col
+                                             :val value})
+                              ;; render-fn is closed over the rest of cell value
+                              ;; so it can be zero-arg
+                              render-fn (fn render-cell [] [(:Cell col) dgrid cell])]
+                          (assoc cell :render-cell render-fn)))
+        cells (reduce (fn [acc col] (conj acc (make-cell col))) [] prepared-cols)]
     (merge default-row-model
            (assoc row
                   :get-row-props get-row-props
-                  :get-cells (fn [] cells)))))
+                  :get-cells (fn get-cells [] cells)))))
 
 (defn prepare-default-cols
   "For when no cols at all were supplied, probably with a no-headers CSV"
   [data]
   (let [col-count (count (-> data first :data))]
     (map (fn [idx]
-           (merge default-col-model {:idx idx
-                                     :id idx
+           (merge default-col-model {:idx      idx
+                                     :id       idx
                                      :accessor (fn [d] (nth d idx))}))
          (range col-count))))
 
@@ -204,7 +177,7 @@
   {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::dgrid %)]}
   (let [sort-lookup (into {} (map (fn [{:keys [id desc?]}]
                                     [id (case desc?
-                                    ;; need to disambiguate false from nil
+                                          ;; need to disambiguate false from nil
                                           false :asc
                                           true :desc
                                           nil)]))
@@ -458,6 +431,7 @@
   "Close over the table instance to provide simple accessors within a
    component."
   [dgrid]
+  {:pre [(valid? ::dgrid dgrid)] :post [(valid? ::table-accessors %)]}
   (let [paginated? (and (paginated? dgrid)
                         (< 1 (:page-count dgrid)))]
     (cond-> {:get-table-props (fn []    (get dgrid :table-props))
