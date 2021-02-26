@@ -319,6 +319,14 @@
       (prepare-col-groups)))
 
 (defn make-dgrid
+  "Create a dgrid around the provided data and optional column descriptions.
+   The resulting map encapsulates the view-independent state of a sortable,
+   filterable, paginated 'table' in the UI. (Note that it's not required to be
+   an HTML table, just ... table-like).
+
+   Refer to opengb.spork.dgrid/GenericTable for an example of how to provide a
+   concrete UI.
+   "
   [{:keys [data cols sort-descriptors row-props
            page-size page-index] :as args}]
   {:pre [(valid? ::args args)] :post [(valid? ::dgrid %)]}
@@ -482,6 +490,7 @@
 
 (defn make-reagent-sort-mutators
   [{:keys []}]
+  ;; TODO make re-frame version
   {:toggle-sort identity})
 
 ;; }}}
@@ -508,6 +517,7 @@
   "Generate filtering mutation fns for re-frame strategy. Supply events."
   ;; THINK - does this just accept closed-over dispatch fns? Or dispatch data?
   ;; either way we don't want to pull re-frame into this ns
+  ;; TODO make re-frame version
   [{:keys []}]
   {:add-filter-value    identity
    :remove-filter-value identity
@@ -550,6 +560,7 @@
 
 (defn make-re-frame-pagination-mutators
   "Make pagination mutators for ratom mutator strategy. Closes over the ratom."
+  ;; TODO make re-frame version
   [{:keys []}]
   {:goto-page      (fn [idx])
    :goto-prev-page (fn [])
@@ -561,8 +572,9 @@
 ;; * Example reagent UI {{{1
 
 (defn GenericTable
-  "Placeholder and demo for how to do basic setup of a custom component. Feel
-   free to copy and paste into your own project and modify as needed."
+  "Placeholder and demo for how to do basic setup of a custom Hiccup-generating
+   component. Feel free to copy and paste into your own project as a starting
+   point, and modify as needed."
   [dgrid]
   (let [{:keys [get-table-props
                 get-thead-props
