@@ -130,8 +130,17 @@
                                      :accessor (fn [d] (nth d idx))}))
          (range col-count))))
 
+(defn- col-ids-unique?
+  "Can get all kinds of weird filtering results if we don't ensure this."
+  [cols]
+  (let [ids (map :id cols)
+        distinct-ids (set ids)]
+    (= (count ids)
+       (count distinct-ids))))
+
 (defn prepare-cols
   [data cols]
+  {:post [(col-ids-unique? %)]}
   (if (empty? cols)
     (prepare-default-cols data)
     (map-indexed
