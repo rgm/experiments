@@ -466,11 +466,17 @@
                          :has-next-page?  (:has-next-page? dgrid)}))))
 
 (defn get-filtered-prepared-data
-  "Return the original data, after sorts and filters have been applied. Useful
-   for companion views (eg. charts) that should respect what data is actually
-   visible."
+  "Return the original data, after sorts and filters have been applied (but no
+   pagination). Useful for companion views (eg. charts) that should respect
+   what data is actually visible."
   [dgrid]
   (some->> dgrid :rows (map :data)))
+
+(defn filtering-active?
+  [dgrid]
+  (let [prepped-data-count (count (get-filtered-prepared-data dgrid))
+        all-data-count (count (:prepared-data dgrid))]
+    (not= all-data-count prepped-data-count)))
 
 ;; MUTATORS aren't super satisfying; we need the mutation outside of the
 ;; namespace so we don't drag in reagent or re-frame, and have to write custom
