@@ -1,9 +1,8 @@
 (ns rgm.app
   "Entry point for single-page app."
-  (:require
-   [reagent.dom :as rdom]
-   [reagent.core :as rg]
-   [rgm.vega :as vega]))
+  (:require [reagent.dom :as rdom]
+            [reagent.core :as rg]
+            [rgm.vega :as vega]))
 
 (defn Vega:did-mount [a-ref this-component]
   (let [props     (rg/props this-component)
@@ -44,7 +43,7 @@
 
 (defn Root []
   [:div
-   [:h1 {:class "text-red-500"} "hi from within react with some styling"]
+   [:h2 {:class "text-red-500 mt-5"} "hi from within react with some styling"]
    [:div {:class "mt-10 w-1/2 h-64 shadow p-3"}
     (let [vega-spec (vega/bar-chart vega/bar-data)]
       [VegaRenderer {:spec vega-spec :debug ["table"]}])]])

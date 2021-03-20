@@ -1,6 +1,5 @@
 (ns rgm.vega
-  (:require
-   [clojure.spec.alpha :as s]))
+  (:require [clojure.spec.alpha :as s]))
 
 (def bar-data
   [{:category "A" :amount 28}

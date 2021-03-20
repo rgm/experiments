@@ -1,10 +1,9 @@
 (ns rgm.main
   "Main entry point for web server."
-  (:require
-   [com.stuartsierra.component :as component]
-   [rgm.cache]
-   [rgm.chrome]
-   [rgm.web-server]))
+  (:require [com.stuartsierra.component :as component]
+            [rgm.cache]
+            [rgm.chrome]
+            [rgm.web-server]))
 
 (defn new-system []
   (component/system-map
@@ -12,7 +11,7 @@
    :cache  (rgm.cache/new-cache)
    :server (component/using
             (rgm.web-server/new-web-server 4000)
-            [:chrome :cache])))
+            [:cache :chrome])))
 
 (defn -main [& _args]
   (component/start (new-system)))

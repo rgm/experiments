@@ -1,39 +1,50 @@
 (ns rgm.web-server
-  (:require
-   [com.stuartsierra.component :as component]
-   [ring.adapter.jetty]
-   [ring.middleware.resource :refer [wrap-resource]]
-   [ring.middleware.content-type :refer [wrap-content-type]]
-   [taoensso.timbre :as timbre]))
+  "Ring/jetty web server."
+  (:require [com.stuartsierra.component :as component]
+            [muuntaja.middleware        :as muuntaja]
+            [reitit.ring                :as rr]
+            [ring.adapter.jetty]
+            [ring.util.io]
+            [ring.util.response         :as response]
+            [rgm.chrome]
+            [taoensso.timbre            :as timbre]))
 
-(defn handler [_request]
-  {:status  200
-   :headers {"Content-Type" "text/plain"}
-   :body    "Hello from base ring handler (you shouldn't see this ... make sure to hit '/index.html' if looking at the jetty PORT at :4000, or just hit up the shadow-cljs PORT at :8000)."})
+(defn- get-url [request]
+  (case (:uri request)
+    "http://host.docker.internal:4000/index.html"))
 
-(defn wrap-deps
-  "Make ::cache and ::chrome available on the request."
-  [handler cache chrome]
-  (fn [req]
-    (let [req' (assoc req
-                      ::cache cache
-                      ::chrome chrome)]
-      (handler req'))))
+(defn print-handler [_cache chrome request]
+  (let [render-fn (fn [output-stream]
+                    (rgm.chrome/render-pdf chrome (get-url request) output-stream))]
+    (-> (ring.util.io/piped-input-stream render-fn)
+        (response/response)
+        (assoc-in [:headers "Content-Type"] "application/pdf")
+        ;; so we don't need to supply content-length; we don't actually know it yet
+        (assoc-in [:headers "Content-Transfer-Encoding"] "chunked"))))
 
-(defn make-app
-  [cache chrome]
-  (-> handler
-      (wrap-resource "public" {:prefer-handler? false})
-      (wrap-content-type)
-      (wrap-deps cache chrome)))
+(defn make-router [cache chrome]
+  (rr/router
+   [["/print" {:handler (partial print-handler cache chrome)}]]))
 
-(defrecord WebServer [port chrome cache]
+(def default-handler
+  (rr/routes
+   (rr/redirect-trailing-slash-handler {:method :strip})
+   ;; test page at / aka index.html comes from the resource handler
+   (rr/create-resource-handler {:path "/"})
+   (rr/create-default-handler {:not-found (constantly 404)})))
+
+(defn make-app [router]
+  (rr/ring-handler
+   router default-handler {:middleware [muuntaja/wrap-format]}))
+
+(defrecord WebServer [port cache chrome]
   component/Lifecycle
   (start [this]
     (timbre/info "starting web server on port" port)
-    (let [server (ring.adapter.jetty/run-jetty
-                  (make-app cache chrome)
-                  {:port port :join? false})]
+    (let [router (make-router cache chrome)
+          app    (make-app router)
+          server (ring.adapter.jetty/run-jetty
+                  app {:port port :join? false})]
       (assoc this :server server)))
   (stop [this]
     (timbre/info "stopping web server")

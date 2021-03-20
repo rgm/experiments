@@ -5,18 +5,15 @@
    feeds that URL to a headless Chrome instance for conversion to PDF. Except
    here we do it mostly in-process with just-in-time data streams instead of
    having to go eventually fetch the PDF from an S3 bucket."
-  (:require
-   [clj-chrome-devtools.automation      :as auto]
-   [clj-chrome-devtools.commands.page   :as page]
-   [clj-chrome-devtools.core            :as chrome]
-   [clj-chrome-devtools.impl.connection :as chrome.conn]
-   [clojure.java.io                     :as io]
-   [clojure.test                        :as t :refer [deftest]]
-   [com.stuartsierra.component          :as component]
-   [taoensso.timbre                     :as timbre])
-  (:import
-   [java.util Base64]
-   [java.io PipedInputStream PipedOutputStream]))
+  (:require [clj-chrome-devtools.automation      :as auto]
+            [clj-chrome-devtools.commands.page   :as page]
+            [clj-chrome-devtools.core            :as chrome]
+            [clj-chrome-devtools.impl.connection :as chrome.conn]
+            [clojure.java.io                     :as io]
+            [clojure.test                        :as t :refer [deftest]]
+            [com.stuartsierra.component          :as component]
+            [taoensso.timbre                     :as timbre])
+  (:import [java.util Base64]))
 
 ;; * component {{{1
 
@@ -49,27 +46,9 @@
   [to-decode]
   (.decode (Base64/getDecoder) to-decode))
 
-(defn- piped-input-stream
-  "Create an input stream from a function that takes an output stream as its
-  argument. The function will be executed in a separate thread. The stream
-  will be automatically closed after the function finishes.
-
-  For example:
-
-    (piped-input-stream (fn [ostream] (spit ostream \"Hello\")))"
-  {:added "1.1"}
-  [f]
-  (let [input  (PipedInputStream.)
-        output (PipedOutputStream.)]
-    (.connect input output)
-    (future (try (f output)
-                 (catch Exception e
-                   (timbre/error e))
-                 (finally (.close output))))
-    input))
-
 (defn- get-pdf-data
   [conn url]
+  (timbre/info "rendering" url)
   (let [a        (auto/create-automation conn)
         _        (auto/to a url) ;; waits for render
         params   {}
@@ -80,8 +59,9 @@
   "Convert the URL to PDF via a chrome component. Accepts an output stream to
    smooth over piping it into ring handlers."
   [component url output-stream]
-  (let [conn (::conn component)]
-    (.write output-stream (get-pdf-data conn url))
+  (let [conn     (::conn component)
+        pdf-data (get-pdf-data conn url)]
+    (.write output-stream pdf-data)
     (.flush output-stream)))
 
 (deftest test-rendering
