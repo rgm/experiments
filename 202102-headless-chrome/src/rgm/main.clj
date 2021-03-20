@@ -11,7 +11,7 @@
    :chrome (rgm.chrome/new-chrome "localhost" 9222)
    :cache  (rgm.cache/new-cache)
    :server (component/using
-            (rgm.web-server/new-web-server 3000)
+            (rgm.web-server/new-web-server 4000)
             [:chrome :cache])))
 
 (defn -main [& _args]

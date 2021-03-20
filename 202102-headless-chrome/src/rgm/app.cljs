@@ -6,7 +6,7 @@
 
 (defn Root []
   [:div
-   [:h1 {:class ""} "hi from react"]])
+   [:h1 {:class ""} "hi from within react"]])
 
 (defn ^:dev/before-load stop [])
 

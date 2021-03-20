@@ -7,10 +7,9 @@
    [taoensso.timbre :as timbre]))
 
 (defn handler [_request]
-  (prn _request)
   {:status  200
-   :headers {"Content-Type" "text/html"}
-   :body    "Hello World"})
+   :headers {"Content-Type" "text/plain"}
+   :body    "Hello from base ring handler (you shouldn't see this ... make sure to hit '/index.html' if looking at the jetty PORT at :4000, or just hit up the shadow-cljs PORT at :8000)."})
 
 (defn wrap-deps
   "Make ::cache and ::chrome available on the request."

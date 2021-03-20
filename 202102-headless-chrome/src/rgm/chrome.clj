@@ -11,6 +11,7 @@
    [clj-chrome-devtools.core            :as chrome]
    [clj-chrome-devtools.impl.connection :as chrome.conn]
    [clojure.java.io                     :as io]
+   [clojure.test                        :as t :refer [deftest]]
    [com.stuartsierra.component          :as component]
    [taoensso.timbre                     :as timbre])
   (:import
@@ -19,16 +20,22 @@
 
 ;; * component {{{1
 
+(defn make-devtools-conn
+  "Make a connection to a chrome devtools instance."
+  [host port]
+  (let [max-msg-size-bytes (* 1024 1024 256)
+        ;; default 1mb ws-client size tends to be too small
+        ;; things wedge if the page coming back is too big
+        ws-client          (chrome.conn/make-ws-client
+                            :max-msg-size-mb max-msg-size-bytes)
+        timeout-ms         8000]
+    (chrome/connect host port timeout-ms ws-client)))
+
 (defrecord Chrome [host port]
   component/Lifecycle
   (start [this]
     (timbre/info "opening chrome ws conn on" (str host ":" port))
-    (let [max-msg-size-bytes (* 1024 1024 256)
-          ws-client          (chrome.conn/make-ws-client
-                              :max-msg-size-mb max-msg-size-bytes)
-          timeout-ms         1000
-          conn               (chrome/connect host port timeout-ms ws-client)]
-      (assoc this ::conn conn)))
+    (assoc this ::conn (make-devtools-conn host port)))
   (stop [this]
     (timbre/info "closing chrome ws conn")
     (.close (::conn this))))
@@ -51,52 +58,52 @@
 
     (piped-input-stream (fn [ostream] (spit ostream \"Hello\")))"
   {:added "1.1"}
-  [func]
+  [f]
   (let [input  (PipedInputStream.)
         output (PipedOutputStream.)]
     (.connect input output)
-    (future
-      (try
-        (func output)
-        (catch Exception e
-          (timbre/error e))
-        (finally (.close output))))
+    (future (try (f output)
+                 (catch Exception e
+                   (timbre/error e))
+                 (finally (.close output))))
     input))
 
-(defn render-pdf
-  "Convert the URL to PDF. Accepts an output stream to smooth over piping it
-   into ring handlers."
-  [chrome url output-stream]
-  (let [conn     (::conn chrome)
-        a        (auto/create-automation conn)
+(defn- get-pdf-data
+  [conn url]
+  (let [a        (auto/create-automation conn)
         _        (auto/to a url) ;; waits for render
-        params   {} #_{:page-ranges "1"}
-        resp     (page/print-to-pdf conn params)
-        pdf-data (b64-decode (:data resp))]
-    (.write output-stream pdf-data)
+        params   {}
+        response (page/print-to-pdf conn params)]
+    (b64-decode (:data response))))
+
+(defn render-pdf
+  "Convert the URL to PDF via a chrome component. Accepts an output stream to
+   smooth over piping it into ring handlers."
+  [component url output-stream]
+  (let [conn (::conn component)]
+    (.write output-stream (get-pdf-data conn url))
     (.flush output-stream)))
 
+(deftest test-rendering
+  ;; remember, docker instance has to be able to see url
+  (let [sample-url "http://host.docker.internal:4000/index.html"]
+    (t/testing "raw connection"
+      (let [msg-size (* 1024 1024 256)
+            ws-client (chrome.conn/make-ws-client :max-msg-size-mb msg-size)
+            c (chrome/connect "localhost" 9222 8000 ws-client)]
+        (with-open [out (io/output-stream "testpage-raw-conn.pdf")]
+          (.write out (get-pdf-data c sample-url)))))
+    (t/testing "component connection"
+      (let [chr (component/start (new-chrome "localhost" 9222))]
+        (with-open [out (io/output-stream "testpage-component.pdf")]
+          (render-pdf chr sample-url out))
+        (component/stop chr)))))
+
 (comment
-  (def sample-url "https://github.com")
-  (def sample-url "https://nytimes.com")
-  (def ws-client (chrome.conn/make-ws-client :max-msg-size-mb (* 1024 1024 256)))
-  (def c (chrome/connect "localhost" 9222 1000 ws-client))
-
-  (def chr (component/start (new-chrome "localhost" 9222)))
-  (component/stop chr)
-
-  (with-open [out (io/output-stream "test2.pdf")]
-    (render-pdf chr sample-url out))
-
-  (page/navigate c {:url sample-url})
-
-  (def resp (page/print-to-pdf c {:page-ranges "1-1"}))
-  (def pdf-data (b64-decode (:data resp)))
+  (def c (chrome/connect "localhost" 9222))
+  (page/navigate c {:url "https://google.com"})
+  (def response (page/print-to-pdf c {:page-ranges "1-1"}))
+  (def pdf-data (b64-decode (:data response)))
   (with-open [out (io/output-stream "test.pdf")] (.write out pdf-data))
-
   (page/get-navigation-history c)
-  (page/reload c)
-
-  (piped-input-stream (partial render-pdf c sample-url))
-
-  )
+  (page/reload c))
