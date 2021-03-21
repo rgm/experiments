@@ -1,25 +1,17 @@
 {:paths ["resources" "src"]
  :deps {applied-science/darkstar                {:git/url "https://github.com/applied-science/darkstar/" :sha "abd480cc382b7ae143f7902ee9d300cdc1a705cc"}
-        camel-snake-kebab/camel-snake-kebab     {:mvn/version "0.4.2"}
-        cli-matic/cli-matic                     {:mvn/version "0.4.3"}
         clj-chrome-devtools/clj-chrome-devtools {:mvn/version "20200423"}
-        com.taoensso/tufte                      {:mvn/version "2.2.0"}
+        com.taoensso/timbre                     {:mvn/version "5.1.0"}
         com.stuartsierra/component              {:mvn/version "1.0.0"}
-        hiccup/hiccup                           {:mvn/version "1.0.5"}
+        hiccup/hiccup                           {:mvn/version "2.0.0-alpha2"}
         metosin/muuntaja                        {:mvn/version "0.6.8"}
         metosin/reitit                          {:mvn/version "0.5.12"}
         org.clojure/clojure                     {:mvn/version "1.10.2"}
-        org.clojure/core.cache                  {:mvn/version "1.0.207"}
         org.clojure/spec.alpha                  {:mvn/version "0.2.194"}
-        rgm/tailwind-hiccup                     {:mvn/version "0.2.0"}
-        ring/ring                               {:mvn/version "1.9.1"}
-        ring/ring-defaults                      {:mvn/version "0.3.2"}}
+        ring/ring                               {:mvn/version "1.9.1"}}
  :aliases
  {:dev  {:extra-paths ["dev"]
          :extra-deps
          {cider/cider-nrepl                     {:mvn/version "0.25.9"}
           com.stuartsierra/component.repl       {:mvn/version "0.2.0"}
-          nrepl/nrepl                           {:mvn/version "0.8.3"}}}
-  :test {:extra-paths ["test"]
-         :extra-deps
-         {lambdaisland/kaocha                   {:mvn/version "1.0.732"}}}}}
+          nrepl/nrepl                           {:mvn/version "0.8.3"}}}}}

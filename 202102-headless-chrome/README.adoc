@@ -1,11 +1,9 @@
 = Headless chrome example
 
-Rendering PDF from an javascript-heavy HTML page by driving headless Chrome from a ring server.
+Rendering PDF from an javascript-heavy HTML page by driving headless Chrome
+from a ring server.
 
-todo
+This example demonstrates:
 
-set up web server
-  reloaded - why not restarting
-  serve out files
-set up caching
-generate html page - with stripped in vega
+- Using a docker Chrome instance to render PDFs from code that relies on JS (eg. React)
+- How to render a Vega chart either via Reagent or server-side via Darkstar+Hiccup
