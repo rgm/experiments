@@ -1,0 +1,7 @@
+{:source-paths ["src"]
+ :dependencies [[reagent/reagent "1.0.0"]]
+ :dev-http     {8000 "resources/public"}
+ :builds       {:app {:target :browser
+                      :output-dir "resources/public/assets/app/js"
+                      :asset-path "/assets/app/js"
+                      :modules {:main {:entries [rgm.app]}}}}}

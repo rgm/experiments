@@ -1,0 +1,18 @@
+{:paths ["resources" "src"]
+ :deps {applied-science/darkstar                {:git/url "https://github.com/applied-science/darkstar/" :sha "abd480cc382b7ae143f7902ee9d300cdc1a705cc"}
+        clj-chrome-devtools/clj-chrome-devtools {:mvn/version "20200423"}
+        com.taoensso/timbre                     {:mvn/version "5.1.2"}
+        com.stuartsierra/component              {:mvn/version "1.0.0"}
+        hiccup/hiccup                           {:mvn/version "2.0.0-alpha2"}
+        metosin/muuntaja                        {:mvn/version "0.6.8"}
+        metosin/reitit                          {:mvn/version "0.5.12"}
+        org.clojure/clojure                     {:mvn/version "1.10.3"}
+        org.clojure/data.json                   {:mvn/version "2.0.1"}
+        org.clojure/spec.alpha                  {:mvn/version "0.2.194"}
+        ring/ring                               {:mvn/version "1.9.2"}}
+ :aliases
+ {:dev  {:extra-paths ["dev"]
+         :extra-deps
+         {cider/cider-nrepl                     {:mvn/version "0.25.9"}
+          com.stuartsierra/component.repl       {:mvn/version "0.2.0"}
+          nrepl/nrepl                           {:mvn/version "0.8.3"}}}}}
