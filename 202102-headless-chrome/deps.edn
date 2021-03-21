@@ -7,6 +7,7 @@
         metosin/muuntaja                        {:mvn/version "0.6.8"}
         metosin/reitit                          {:mvn/version "0.5.12"}
         org.clojure/clojure                     {:mvn/version "1.10.2"}
+        org.clojure/data.json                   {:mvn/version "2.0.1"}
         org.clojure/spec.alpha                  {:mvn/version "0.2.194"}
         ring/ring                               {:mvn/version "1.9.1"}}
  :aliases

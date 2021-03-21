@@ -44,7 +44,8 @@
 (defn Root []
   [:div
    [:h2 {:class "text-red-500 mt-5"} "hi from within react with some styling"]
-   [:div {:class "mt-10 w-1/2 h-64 shadow p-3"}
+   [:h3 {:class "font-bold mt-10 mb-4"} "here is a vega graph generated through react"]
+   [:div {:class "w-1/2 h-64 shadow p-3"}
     (let [vega-spec (vega/bar-chart vega/bar-data)]
       [VegaRenderer {:spec vega-spec :debug ["table"]}])]])
 

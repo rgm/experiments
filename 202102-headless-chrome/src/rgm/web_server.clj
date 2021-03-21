@@ -1,6 +1,7 @@
 (ns rgm.web-server
   "Ring/jetty web server."
   (:require [applied-science.darkstar   :as darkstar]
+            [clojure.data.json          :as json]
             [com.stuartsierra.component :as component]
             [muuntaja.middleware        :as muuntaja]
             [hiccup.page]
@@ -10,7 +11,21 @@
             [ring.util.io]
             [ring.util.response         :as response]
             [rgm.chrome]
+            [rgm.vega]
             [taoensso.timbre            :as timbre]))
+
+(defn VegaSample []
+  (let [base-spec (rgm.vega/bar-chart rgm.vega/bar-data)
+        size-signal? #(#{"width" "height"} (:name %))
+        [width-pt height-pt] [360 100]
+        ;; can't use containerSize() signals for responsive height and width since
+        ;; update will never get called; we're not running in a js context
+        statically-sized-spec (-> base-spec
+                                  (update :signals #(remove size-signal? %))
+                                  (assoc :width width-pt :height height-pt))]
+    (-> statically-sized-spec
+        (json/write-str)
+        (darkstar/vega-spec->svg))))
 
 (defn Layout []
   (h/html
@@ -24,8 +39,11 @@
              :rel "stylesheet"
              :type "text/css"}]
      [:style {:type "text/css"} "@media print {.print\\:hidden { display: none; }}"]]
-    [:body.container.mx-auto
+    [:body.font-serif.container.mx-auto
      [:h1.font-bold.text-2xl.mb-3 "content outside react"]
+     [:div.my-4
+      [:h2.font-bold "here is a server-rendered vega graph"]
+      (h/raw (VegaSample))]
      [:a.print:hidden.border.rounded.px-3.py-2.my-8
       {:href "/print"} "Save PDF"]
      [:div#app "spa is booting"]
