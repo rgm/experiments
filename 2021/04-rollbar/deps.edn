@@ -1,0 +1,3 @@
+{:paths ["src"]
+ :deps {org.clojure/core.async {:mvn/version "RELEASE"}
+        circleci/rollcage {:mvn/version "1.0.203"}}}

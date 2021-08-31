@@ -1,0 +1,15 @@
+{
+  "name": "202102-react-table",
+  "version": "0.0.1",
+  "private": true,
+  "devDependencies": {
+    "shadow-cljs": "2.11.18"
+  },
+  "dependencies": {
+    "acorn": "^8.0.5",
+    "draft-js": "^0.11.7",
+    "paper": "^0.12.11",
+    "react": "17.0.1",
+    "react-dom": "17.0.1"
+  }
+}

@@ -1,0 +1,19 @@
+;; shadow-cljs configuration
+{:source-paths
+ ["src/dev"
+  "src/main"
+  "src/test"]
+
+ :dependencies
+ [[cljs-bean/cljs-bean "1.7.0"]
+  [com.taoensso/timbre "5.1.2"]
+  [djblue/portal "0.14.0"]
+  [lilactown/helix "0.1.0"]]
+
+ :dev-http {8000 "public"}
+
+ :builds
+ {:app {:target :browser
+        :output-dir "public/assets/app/js"
+        :asset-path "/assets/app/js"
+        :modules {:main {:entries [my.app]}}}}}

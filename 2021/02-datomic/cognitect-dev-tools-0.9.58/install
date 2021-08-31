@@ -1,0 +1,7 @@
+#!/bin/bash
+  cd `dirname $0`
+
+  echo 'Installing: com.cognitect/rebl {:mvn/version "0.9.242"}'
+  mvn -q org.apache.maven.plugins:maven-install-plugin:3.0.0-M1:install-file -Dfile=rebl-0.9.242/rebl-0.9.242.jar
+  echo 'Installing: com.datomic/dev-local {:mvn/version "0.9.232"}'
+  mvn -q org.apache.maven.plugins:maven-install-plugin:3.0.0-M1:install-file -Dfile=dev-local-0.9.232/dev-local-0.9.232.jar

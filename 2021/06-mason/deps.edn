@@ -1,0 +1,2 @@
+{:paths ["src"]
+ :deps {mars0i/masonclj {:mvn/version "0.2.0"}}}
