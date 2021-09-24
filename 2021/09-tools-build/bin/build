@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# building out using new tools build
+
+clj -T:build uber
