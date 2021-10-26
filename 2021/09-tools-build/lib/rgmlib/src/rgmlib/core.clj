@@ -1,6 +1,9 @@
 (ns rgmlib.core
   (:require
-   [hugsql.core :as hug]))
+   [hugsql.core   :as hug]
+   [selmer.parser :as selmer]))
 
 (hug/def-db-fns "hug.sql")
-(defn foo [] 1)
+
+(defn foo []
+  (selmer/render-file "selmertest.html" {:myvar "SUCCESS!"} :custom-resource-path nil))

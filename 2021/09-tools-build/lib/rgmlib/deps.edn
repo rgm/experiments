@@ -1,6 +1,7 @@
 {:paths ["src" "resources"]
  :deps
- {com.layerware/hugsql                {:mvn/version "0.5.1"}}
+ {com.layerware/hugsql                {:mvn/version "0.5.1"}
+  selmer/selmer                       {:mvn/version "1.12.44"}}
  :aliases
  {:build
   {:extra-deps
