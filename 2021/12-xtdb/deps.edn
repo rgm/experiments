@@ -1,0 +1,5 @@
+{:paths ["src"]
+ :deps {
+        com.xtdb/xtdb-core {:mvn/version "1.20.0"}
+        com.xtdb/xtdb-rocksdb {:mvn/version "1.20.0"}
+        }}
