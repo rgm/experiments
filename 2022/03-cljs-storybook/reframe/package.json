@@ -2,7 +2,7 @@
   "dependencies": {
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
-    "storybook": "file:../storybook"
+    "mylib": "file:../storybook"
   },
   "devDependencies": {
     "webpack": "^5.68.0",
