@@ -7,7 +7,11 @@
    ["react-dom" :as rdom]))
 
 (defnc HelixRoot []
-  (d/div "HIYA"))
+  (d/div
+   "HIYA FROM HELIX"
+   ($ my.shared/Button {:label "A HELIX-PROVIDED LABEL"
+                        :backgroundColor "#ff0"
+                        :onClick #(prn "hi from my click handler")})))
 
 (defn ^:dev/after-load start []
   (js/console.log "starting")
