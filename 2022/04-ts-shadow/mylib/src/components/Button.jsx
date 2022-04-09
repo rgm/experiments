@@ -1,16 +1,18 @@
 import React, { useState } from "react";
-import PropTypes from 'prop-types';
+import PropTypes from "prop-types";
 
 const initialCount = 0;
 
 export default function Button({ label, backgroundColor, onClick }) {
+  const [count, setCount] = useState(initialCount);
   console.log("RUNNING BUTTON");
-  // const [count, setCount] = useState(initialCount);
   return (
-    <button onClick={onClick}
-    style={backgroundColor && { backgroundColor }}>
-      {label}
-    </button>
+    <div>
+      Count is: {count}
+      <button onClick={onClick} style={backgroundColor && { backgroundColor }}>
+        {label}
+      </button>
+    </div>
   );
 }
 
