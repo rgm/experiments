@@ -1,5 +1,7 @@
-mylib/dist/index.js:
-	cd mylib && npm run build
+JSXSRC=$(shell find mylib/src)
+
+mylib/dist/index.js: $(JSXSRC)
+	cd mylib && npm run compile
 
 prepare: mylib/node_modules myapp/node_modules
 
@@ -8,5 +10,6 @@ mylib/node_modules:
 	touch $@
 
 myapp/node_modules:
-	cd mylib && npm i
+	cd myapp && npm i
+	myapp/script/bootstrap
 	touch $@

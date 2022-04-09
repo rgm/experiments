@@ -6,7 +6,6 @@
     "shadow-cljs": "2.18.0"
   },
   "dependencies": {
-    "mylib": "../mylib",
     "react": "^18.0.0",
     "react-dom": "^18.0.0"
   },
