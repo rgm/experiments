@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+# script/bootstrap: Resolve all dependencies that the application requires to
+#                   run.
+
+set -e
+cd "$(dirname "$0")/.."
+
+# There's a peculiarity with react hooks and symlinked local packages
+# https://github.com/facebook/react/issues/13991#issuecomment-445873622
+# https://stackoverflow.com/a/70375578/53790
+# https://www.npmjs.com/package/install-local
+
+# short version: with `npm i ../mylib` you get a symlink to the package. This
+# seems to confuse npm/shadow enough to pull in 2 copies of react, leading to
+# the hooks breakage. The `install-local` package simulates a production pull
+# from npmjs.
+
+npx install-local ../mylib

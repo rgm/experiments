@@ -1,0 +1,24 @@
+;; shadow-cljs configuration
+{:source-paths
+ ["src/dev"
+  "src/main"
+  "src/test"]
+
+ :dependencies
+ [[lilactown/helix "0.1.5"]
+  [reagent/reagent "1.1.0"]]
+
+ :dev-http {9090 {:root "public"}}
+
+ :builds
+ {:app {:target :browser
+        :output-dir "public/js"
+        :devtools {:watch-dir "public"}
+        :dev {:closure-defines {goog.DEBUG true}
+              :compiler-options {:output-feature-set :es6}}
+        :asset-path "/js"
+        :module-hash-names true
+        :modules {:shared    {:entries [my.shared]}
+                  :app       {:entries [my.app]
+                              :depends-on #{:shared}}}
+        :build-hooks [(shadow.cljs.build-report/hook {:output-to "target/shadow.html"})]}}}

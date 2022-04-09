@@ -1,0 +1,2 @@
+mylib: find mylib/src/components | entr make
+myapp: cd myapp && npx shadow-cljs watch app
