@@ -1,0 +1,4 @@
+repl: script/repl
+kaocha: script/kaocha --watch
+
+# vi:ft=conf

@@ -1,0 +1,8 @@
+.cache
+target
+.cpcache/
+.lsp/
+.shadow-cljs/
+.store/
+junit
+node_modules/

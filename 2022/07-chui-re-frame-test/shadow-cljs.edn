@@ -1,0 +1,12 @@
+{:deps {:aliases [:cljs :test]}
+
+ :dev-http {1818 "target/kaocha-test"}
+
+ :builds
+ {:test
+  {:target         :browser-test
+   :runner-ns      kaocha.cljs2.shadow-runner
+   :test-dir       "target/kaocha-test"
+   :ns-regexp      ".*-test$"
+   :cache-blockers #{lambdaisland.chui.test-data}
+   :devtools       {:preloads [lambdaisland.chui.remote]}}}}
