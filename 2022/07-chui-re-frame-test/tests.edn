@@ -1,0 +1,22 @@
+#kaocha/v1
+{:tests [{:id :unit}
+
+         {:id :browser
+          :type :kaocha.type/cljs2
+          :shadow/build :test
+          :source-paths ["src/cljs" "src/cljc"]
+          :test-paths ["test/cljs" "test/cljc"]
+          :kaocha.hooks/pre-load-test rgm.kaocha-hooks/pre-load
+          :kaocha.cljs2/clients-hook
+          #profile {:default rgm.kaocha-hooks/launch-real-browser-and-wait
+                    :ci rgm.kaocha-hooks/launch-headless-browser-and-wait}}]
+
+ :plugins #profile {:default [:print-invocations :hooks :cloverage :notifier]
+                    :ci [:print-invocations :hooks :cloverage :profiling :junit-xml]}
+ :kaocha/reporter #profile {:default [kaocha.report/dots]
+                            :ci [kaocha.report/documentation]}
+
+ :capture-output? false
+ :bindings {kaocha.stacktrace/*stacktrace-filters* []}
+
+ :kaocha.plugin.junit-xml/target-file "junit/unit.xml"}

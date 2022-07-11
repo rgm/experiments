@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+set -e
+cd `dirname $0`/..
+
+overmind start --no-port --procfile Procfile.dev --daemonize
+sleep 3 && overmind c repl
