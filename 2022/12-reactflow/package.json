@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "react": "17.0.1",
-    "react-dom": "17.0.1"
+    "react-dom": "17.0.1",
+    "reactflow": "^11.3.2"
   }
 }
