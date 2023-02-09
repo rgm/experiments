@@ -1,4 +1,5 @@
-import { useState } from "react";
+import "./App.css";
+import { useState, useEffect, useRef } from "react";
 import {
   Form,
   RouterProvider,
@@ -74,14 +75,51 @@ function Input({ name, defaultValue, className }) {
   const [isDirty, setIsDirty] = useState(false);
   return (
     <div className="flex items-baseline gap-2">
-      <div>{name}</div>
+      <div>{name} =</div>
       <input
-        type="text"
+        type="number"
         name={isDirty ? name : null}
         defaultValue={defaultValue}
         className={className}
         onChange={() => setIsDirty(true)}
+        autoComplete="off"
       />
+      <button
+        type="submit"
+        className="border border-gray-500 px-2 py-1 text-gray-400"
+      >
+        save
+      </button>
+    </div>
+  );
+}
+
+const intFormatter = new Intl.NumberFormat("en-CA", {
+  style: "decimal",
+  maximumFractionDigits: 0,
+});
+
+const nbsp = " "; // u00a0 to avoid height shifts
+
+function Output({ formula, value }) {
+  const [firstRender, setFirstRender] = useState(true);
+  const valRef = useRef(null);
+  useEffect(() => {
+    if (!firstRender && valRef.current) {
+      // css flash on new value to draw user's eye
+      valRef.current.classList.remove("flash");
+      setTimeout(() => valRef.current.classList.add("flash"), 1);
+    } else {
+      setFirstRender(false);
+    }
+  }, [value]);
+  return (
+    <div className="flex gap-2 items-baseline">
+      <div className="text-gray-500">{formula} =</div>
+      <div ref={valRef} className="text-2xl">
+        {intFormatter.format(value)}
+        {nbsp}
+      </div>
     </div>
   );
 }
@@ -95,13 +133,6 @@ function Wrapper({ job }) {
     <>
       <Input className={tw} name="a" defaultValue={job.a} />
       <Input className={tw} name="b" defaultValue={job.b} />
-      {/* hidden button makes HTML submit with a return in the inputs work */}
-      <button
-        className="border border-white px-3 py-2 mt-4 hidden"
-        type="submit"
-      >
-        Force a calc
-      </button>
     </>
   );
 }
@@ -113,13 +144,9 @@ function Calc() {
     <>
       <Form method="post">
         <Wrapper job={job} />
-        <div className="mt-6 flex gap-2 items-baseline">
-          <div className="text-gray-500">a + b =</div>
-          <div className="text-lg">{job.sum} </div> {/* u00a0 for height */}
-        </div>
-        <div className="flex gap-2 items-baseline">
-          <div className="text-gray-500">a × b =</div>
-          <div className="text-lg">{job.product} </div> {/* u00a0 for height */}
+        <div className="flex flex-col gap-2 mt-4">
+          <Output formula="a + b" value={job.sum} />
+          <Output formula="a × b" value={job.product} />
         </div>
       </Form>
       <Rationale />

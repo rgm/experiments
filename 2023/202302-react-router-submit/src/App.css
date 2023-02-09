@@ -1,0 +1,19 @@
+@keyframes flash-background {
+  /* come up fast, then tail off */
+  0% {
+    background-color: transparent;
+    color: white;
+  }
+  15% {
+    background-color: white;
+    color: rgb(17, 24, 39);
+  }
+  100% {
+    background-color: transparent;
+    color: white;
+  }
+}
+
+.flash {
+  animation: flash-background 0.7s ease 0s 1;
+}
