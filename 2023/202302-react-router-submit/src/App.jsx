@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import {
   Form,
   RouterProvider,
@@ -6,50 +6,91 @@ import {
   useLoaderData,
 } from "react-router-dom";
 
-let sum = null;
+function Rationale() {
+  return (
+    <div className="text-gray-500 mb-6">
+      <p className="mt-10">The point of all of this:</p>
+      <ul className="list-disc">
+        <li>
+          A user will change params on the front end, and throw a "job" (set of
+          kv pairs) at a server and get back result kv pairs. A user might not
+          change an input; we shouldn't throw unchanged params at the server
+          since it already knows the previous state of the job.
+        </li>
+        <li>
+          need a lot of UI flexibility (design experiments underway) so the idea
+          is to have a big overall Form wrapper and the inputs could be
+          arbitrarily deep. The mutation machinery doesn't care where, shouldn't
+          need a rewrite when we move inputs from one component to another.
+        </li>
+        <li>
+          type a number and hit return in the *input*; we should be submitting
+          without having to hit a button and getting a sum/product, ie. in an
+          onChange instead, maybe onBlur.
+        </li>
+      </ul>
+    </div>
+  );
+}
+
+// a job run is just an obj
+// global simulates the server's database record of the job
+window.JOB = { a: 12, b: 44 };
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <Calc />,
-    loader: async ({ request }) => {
-      console.log("loader", request);
-      let job = { a: 44, b: 12, sum: sum };
+    loader: async ({ params, request }) => {
+      console.log("loader running");
       return new Promise((resolve, _reject) => {
         // simulate a network round-trip
-        setTimeout(() => resolve(job), 300);
+        // placeholder for complex backend stuff going on, backend gives us a
+        // result, we're just faking it here.
+        JOB.sum = JOB.a + JOB.b;
+        JOB.product = JOB.a * JOB.b;
+        setTimeout(() => resolve(JOB), 300);
       });
     },
-    action: async ({ request }) => {
+    action: async ({ params, request }) => {
+      console.log("action running");
       const formData = await request.formData();
-      const obj = Object.fromEntries(formData);
-      const a = parseInt(obj.a, 10);
-      const b = parseInt(obj.b, 10);
-      sum = a + b;
-      console.log("action", request);
-      return null;
+      for (const [k, v] of formData) {
+        // loop over known names
+        // simulates throwing new input data at a server
+        // in reality we POST this after some pre-processing
+        console.log("sending", k, "to server");
+        JOB[k] = parseInt(v, 10);
+      }
+      return null; // don't redirect
     },
   },
 ]);
 
 function Input({ name, defaultValue, className }) {
-  const buttonRef = useRef(null);
+  // don't put a name on the input until the user changes it
+  // adding the name is what makes the route action able to see it
+  console.debug("Input rendering");
+  const [isDirty, setIsDirty] = useState(false);
   return (
-    <>
+    <div className="flex items-baseline gap-2">
+      <div>{name}</div>
       <input
         type="text"
-        name={name}
+        name={isDirty ? name : null}
         defaultValue={defaultValue}
         className={className}
+        onChange={() => setIsDirty(true)}
       />
-    </>
+    </div>
   );
 }
 
 function Wrapper({ job }) {
   // give ourselves a couple levels to lose track of the route Form and have to
   // find it again
-  const tw = "block bg-gray-800 my-2 px-3 py-2";
+  console.debug("Wrapper rendering");
+  const tw = "block bg-gray-700 my-2 px-3 py-2";
   return (
     <>
       <Input className={tw} name="a" defaultValue={job.a} />
@@ -66,26 +107,28 @@ function Wrapper({ job }) {
 }
 
 function Calc() {
+  console.debug("Calc rendering");
   const job = useLoaderData();
   return (
-    <Form method="post">
-      <div className="text-gray-500 mb-6">
-        <p className="mb-2">The point of all of this:</p>
-        <p>
-          type a number and hit return; we should be submitting without hitting
-          the button and getting a sum, ie. in an onChange instead.
-        </p>
-      </div>
-      <Wrapper job={job} />
-      <div className="mt-6 flex gap-2 items-baseline">
-        <div className="text-gray-500">The sum:</div>
-        <div className="text-lg">{job.sum} </div> {/* u00a0 for height */}
-      </div>
-    </Form>
+    <>
+      <Form method="post">
+        <Wrapper job={job} />
+        <div className="mt-6 flex gap-2 items-baseline">
+          <div className="text-gray-500">a + b =</div>
+          <div className="text-lg">{job.sum} </div> {/* u00a0 for height */}
+        </div>
+        <div className="flex gap-2 items-baseline">
+          <div className="text-gray-500">a × b =</div>
+          <div className="text-lg">{job.product} </div> {/* u00a0 for height */}
+        </div>
+      </Form>
+      <Rationale />
+    </>
   );
 }
 
 function App() {
+  console.debug("App rendering");
   return (
     <div className="w-full container mx-auto my-12">
       <RouterProvider router={router} />
