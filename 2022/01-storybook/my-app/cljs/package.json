@@ -1,0 +1,13 @@
+{
+  "name": "cljs",
+  "version": "0.0.1",
+  "private": true,
+  "devDependencies": {
+    "shadow-cljs": "2.16.10"
+  },
+  "dependencies": {
+    "d3": "^7.2.1",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  }
+}

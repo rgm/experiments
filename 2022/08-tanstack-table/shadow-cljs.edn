@@ -1,0 +1,15 @@
+{:deps {:aliases [:cljs :test]}
+
+ :dev-http {8000 "resources/public" 1818 "target/kaocha-test"}
+
+ :builds
+ {:app  {:target :browser
+         :output-dir "/resources/public/assets/app/js"
+         :asset-path "/assets/app/js"
+         :modules {:main {:entries [rgm.app]}}}
+  :test {:target         :browser-test
+         :runner-ns      kaocha.cljs2.shadow-runner
+         :test-dir       "target/kaocha-test"
+         :ns-regexp      ".*-test$"
+         :cache-blockers #{lambdaisland.chui.test-data}
+         :devtools       {:preloads [lambdaisland.chui.remote]}}}}

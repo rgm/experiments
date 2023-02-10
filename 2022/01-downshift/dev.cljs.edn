@@ -1,0 +1,3 @@
+^{:auto-bundle :webpack
+  :css-dirs ["resources/public/css"]}
+{:main my.demo}

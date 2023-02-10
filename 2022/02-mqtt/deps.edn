@@ -1,0 +1,2 @@
+{:paths ["src"]
+ :deps {clojurewerkz/machine_head {:mvn/version "1.0.0"}}}

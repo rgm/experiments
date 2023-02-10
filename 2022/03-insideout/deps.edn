@@ -1,0 +1,8 @@
+{:paths ["src"]
+ :deps
+ {io.github.mhuebert/inside-out {:git/sha "84b7c9649525c7b0c3278c6bb7182f27d16acc74"}
+  io.github.nextjournal/clerk   {:mvn/version "RELEASE"}
+  org.clojure/clojurescript     {:mvn/version "RELEASE"}
+  re-frame/re-frame             {:mvn/version "RELEASE"}
+  djblue/portal                 {:mvn/version "RELEASE"}
+  thheller/shadow-cljs          {:mvn/version "RELEASE"}}}

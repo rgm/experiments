@@ -1,0 +1,14 @@
+;; shadow-cljs configuration
+{:source-paths
+ ["src/dev"
+  "src/main"
+  "src/test"]
+
+ :dependencies
+ []
+
+ :builds
+ {:target :browser
+  :output-dir "/resources/public/assets/app/js"
+  :asset-path "/assets/app/js"
+  :modules {:main {:entries [rgm.app]}}}}

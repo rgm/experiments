@@ -1,0 +1,7 @@
+{:paths ["src" "resources" "target"]
+ :deps {reagent/reagent {:mvn/version "1.1.0"}
+        ; org.slf4j/slf4j-api {:mvn/version "2.0.0-alpha5"}
+        ; org.slf4j/slf4j-nop { :mvn/version "2.0.0-alpha5"}
+        cljs-bean/cljs-bean {:mvn/version "1.8.0"}
+        org.slf4j/slf4j-simple {:mvn/version "2.0.0-alpha5"}
+        opengb/spork-select {:local/root "/Users/rgm/Projects/foss/spork-select"}}}

@@ -1,6 +1,8 @@
 *.class
+*.env
 *.jar
 .DS_Store
+.clerk
 .cljs_nashorn_repl
 .cljs_node_repl
 .cpcache/
@@ -10,6 +12,7 @@
 .lein-repl-history
 .nrepl-port
 .rebel_readline_history
+.shadow-cljs
 /checkouts/
 /classes/
 /lib/
@@ -26,3 +29,4 @@ pom.xml.asc
 tags
 target
 tmp
+zig-cache
