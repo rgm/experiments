@@ -1,0 +1,3 @@
+client: ./script/repl_client.sh
+worker: ./script/start_worker.sh
+faktory: trap 'docker stop rgm_faktory_demo' EXIT > /dev/null; ./script/start_faktory.sh
