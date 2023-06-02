@@ -1,0 +1,17 @@
+{:paths ["src" "resources"]
+ :deps {cljs-bean/cljs-bean           {:mvn/version "1.9.0"}                                ; js interop
+        com.lambdaisland/hiccup       {:mvn/version "0.0.15"}                               ; html rendering
+        datascript/datascript         {:mvn/version "1.4.2"}                                ; in-memory db
+        integrant/integrant           {:mvn/version "0.8.1"}                                ; dependency injection
+        io.github.rgm/tailwind-hiccup {:git/sha "f77df61ad4ac7f3dba4b80825b71a4d552bf4b8b"} ; tailwind
+        metosin/reitit                {:mvn/version "0.6.0"}                                ; http routing
+        org.clojure/clojure           {:mvn/version "1.11.1"}
+        org.clojure/clojurescript     {:mvn/version "1.11.60"}
+        ring/ring                     {:mvn/version "1.10.0"}                               ; http
+        ring/ring-defaults            {:mvn/version "0.3.4"}                                ; http default middleware
+        ring/ring-jetty-adapter       {:mvn/version "1.10.0"}}                              ; http server
+ :aliases
+ {:dev
+  {:extra-paths ["dev"]
+   :extra-deps {djblue/portal  {:mvn/version "0.41.0"}
+                integrant/repl {:mvn/version "0.3.2"}}}}}
