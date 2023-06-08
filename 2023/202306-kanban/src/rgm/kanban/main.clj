@@ -41,12 +41,12 @@
                   :hx-target "#parent-div"
                   :hx-swap "outerHTML"}) "click me"]]
    [:div (tw [:w-full :grid :grid-cols-3 :gap-4 :p-4])
-    [:form.sortable {:hx-post "/items" :hx-trigger "end"}
+    [:form.sortable (tw [] {:hx-post "/items" :hx-trigger "end"})
      [:div.htmx-indicator "Updating"]
-     [:div (tw [:w-64 :border]) [:input {:type "hidden" :name "item" :value "1"}] "1"]
-     [:div (tw [:w-64 :border]) [:input {:type "hidden" :name "item" :value "2"}] "2"]
-     [:div (tw [:w-64 :border]) [:input {:type "hidden" :name "item" :value "3"}] "3"]
-     [:div (tw [:w-64 :border]) [:input {:type "hidden" :name "item" :value "4"}] "4"]]]])
+     [:div (tw [:my-2 :py-2 :w-full :border]) [:input {:type "hidden" :name "item" :value "1"}] "1"]
+     [:div (tw [:my-2 :py-2 :w-full :border]) [:input {:type "hidden" :name "item" :value "2"}] "2"]
+     [:div (tw [:my-2 :py-2 :w-full :border]) [:input {:type "hidden" :name "item" :value "3"}] "3"]
+     [:div (tw [:my-2 :py-2 :w-full :border]) [:input {:type "hidden" :name "item" :value "4"}] "4"]]]])
 
 (defn DefaultLayout
   [ctx body-fn]
@@ -59,7 +59,9 @@
      [:script {:src "/htmx.min.js"}]
      [:script {:src "/Sortable.min.js"}]
      [:script {:src "https://cdn.tailwindcss.com"}]
-     [:script {:src "/app.js"}]]
+     [:script {:src "/app.js"}]
+     [:link {:rel "stylesheet" :href "/styles.css"}]
+     ]
     [:body {:style {}} [:div (tw []) (body-fn ctx)]]]))
 
 (defn make-ctx
