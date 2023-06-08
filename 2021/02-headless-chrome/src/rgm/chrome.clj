@@ -39,6 +39,11 @@
 
 (defn new-chrome [host port] (->Chrome host port))
 
+(comment
+  (def c (new-chrome "localhost" 9222))
+  (component/start c)
+  (component/stop c))
+
 ;; }}}
 
 (defn- b64-decode

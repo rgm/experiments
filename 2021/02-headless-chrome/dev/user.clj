@@ -4,6 +4,7 @@
    [com.stuartsierra.component.user-helpers :refer [dev go reset]]))
 
 (comment
+  (go)
   system)
 
 ;; vi:ts=2 sw=2 expandtab
