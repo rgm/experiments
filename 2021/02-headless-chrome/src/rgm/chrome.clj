@@ -86,7 +86,8 @@
 
 (comment
   (def c (chrome/connect "localhost" 9222))
-  (page/navigate c {:url "https://google.com"})
+  (chrome.conn/get-current-connection)
+  (page/navigate c {:url "https://slack.com"})
   (def response (page/print-to-pdf c {:page-ranges "1-1"}))
   (def pdf-data (b64-decode (:data response)))
   (with-open [out (io/output-stream "test.pdf")] (.write out pdf-data))

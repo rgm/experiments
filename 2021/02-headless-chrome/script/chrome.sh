@@ -25,9 +25,10 @@ CONTAINER_NAME="chrome-headless"
 
 docker run --rm -it \
   --name "$CONTAINER_NAME" \
-  -p 127.0.0.1:9222:9222 \
+  -p 9222:9222 \
   "$IMAGE_NAME" \
   --no-sandbox \
   --remote-debugging-address=0.0.0.0 \
   --remote-debugging-port=9222 \
-  --disable-gpu
+  --disable-gpu \
+  chrome://about

@@ -13,3 +13,5 @@
 
 (defn -main [& _args]
   (component/start (new-system)))
+
+(comment (-main))
