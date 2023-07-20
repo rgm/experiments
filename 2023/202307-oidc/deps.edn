@@ -1,0 +1,12 @@
+{:paths ["src"]
+ :deps {com.taoensso/carmine {:mvn/version "3.2.0"}
+        djblue/portal {:mvn/version "0.42.1"}
+        integrant/integrant {:mvn/version "0.8.1"}
+        integrant/repl {:mvn/version "0.3.3"}
+        lambdaisland/hiccup {:git/url "https://github.com/lambdaisland/hiccup"
+                             :git/sha "5abf1bacc76c9d54726c1ba4a336312f52d0933f"}
+        metosin/reitit {:mvn/version "0.6.0"}
+        ring-oauth2/ring-oauth2 {:mvn/version "0.2.0"}
+        ring/ring {:mvn/version "1.10.0"}
+        ring/ring-defaults {:mvn/version "0.3.4"}}
+ :aliases {:dev {} :test {}}}
