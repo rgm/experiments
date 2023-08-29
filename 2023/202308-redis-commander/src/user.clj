@@ -1,7 +1,7 @@
 (ns user
-  "Tno redis connry using redis streams as the ledger/backbone for a commander
-   architecture."
+  "Try using redis streams as the ledger/backbone for a commander architecture."
   (:require
+   [clojure.string :as str]
    [clojure.core.async :as a :refer [<! >! <!! >!!]]
    [malli.core :as m]
    [integrant.core :as ig]
@@ -23,11 +23,11 @@
 ;; schemas
 ;;
 
-(defn validate!
-  [spec value]
+(defn validate! [spec value]
+  (print value)
   (when-not (m/validate spec value)
     (let [data {:value value :spec spec :err (m/explain spec value)}]
-      (throw (ex-info "invalid value" data)))))
+      (throw (ex-info "my invalid value" data)))))
 
 (def schema:evt-name symbol?)
 
@@ -50,11 +50,11 @@
      [:evt/name      schema:evt-name]
      [:evt/author-id user-id]
      [:evt/data      :map]
-     ;; rest are optional b/c they get assigned after persisting into redis
-     [:evt/id        {:optional true} :string]
-     [:evt/ts        {:optional true} inst?]
+     [:evt/metadata  {:optional true} :map]
+     ;; id, parent-id, ts optional b/c needs id from redis
      [:evt/parent-id {:optional true} :string]
-     [:evt/metadata  {:optional true} :map]]))
+     [:evt/id        {:optional true} :string]
+     [:evt/ts        {:optional true} inst?]]))
 
 (def schema:cmd
   "Commands are expressions of a user's intent, as data.
@@ -90,24 +90,36 @@
    [:evt/data schema:cmd]])
 
 ;;
+;; event-filtering predicates
+;; an event observer
+
+(defn for-audience? [user-id]
+  (fn [evt] (= user-id (get-in evt [:evt/metadata :audience-id]))))
+
+;;
 ;; ledger
 ;;
+
+(defn redis-entry-id->ts [entry-id]
+  (let [ms (first (str/split entry-id #"-"))]
+    (java.time.Instant/ofEpochMilli (parse-long ms))))
 
 (defn get-all-evts [ledger]
   ;; nb. redis stream ids are timestamps, just derived from redis entry id
   ;; so extract an inst to get a ts; we don't need to record this separately
   (->> (wcar (:redis ledger) (car/xrange (:stream ledger) "-" "+"))
-       (map (fn [[id [_ m]]] (assoc m :evt/id id)))))
+       (map (fn [[redis-event-id [_ m]]]
+              (assoc m
+                     :evt/id redis-event-id
+                     :evt/ts (redis-entry-id->ts redis-event-id))))))
 
 (defprotocol ILedger
   (push-event [this evts]
-    "Add event to the ledger.")
-  (push-events [this evts]
-    "Add events to the ledger.")
-  (listen-for-events [this evt-names chan]
-    "Listen for events on chan.")
+    "Add an event to the ledger.")
+  (listen-for-events [this chan]
+    "Listen for new events on chan.")
   (stop-listening-for-events [this chan]
-    "Stop listening for events on chan.")
+    "Stop listening for new events on chan.")
   (trim-events [this eid]
     "Trim old events before eid."))
 
@@ -121,11 +133,7 @@
     (validate! schema:evt evt)
     (wcar redis (car/xadd stream "*" "evt" evt)))
 
-  (push-events [_ evts]
-    (doseq [e evts] (validate! schema:evt e))
-    (doall (for [e evts] (wcar redis (car/xadd stream "*" "evt" e)))))
-
-  (listen-for-events [_ evt-names chan]
+  (listen-for-events [_ chan]
     ;; audience fan-out ... what about making channels that have a filter on
     ;; them and returning that? ... maybe best handled by consumer since
     ;; it can configure the channel with whatever transducers it feels like adding
@@ -142,15 +150,30 @@
 ;;
 
 (def system-config
-  {::state     {}
-   ::redis     {:uri "redis://localhost:6379/2"}
-   ::ledger    {:redis (ig/ref ::redis) :stream-key "myledger"}
-   ::commander {:ledger (ig/ref ::ledger) :*state ::state}})
+  {::state               {}
+   ::redis               {:uri "redis://localhost:6379/2"}
+   ::ledger              {:redis (ig/ref ::redis) :stream "myledger"}
+   ::commander           {:ledger (ig/ref ::ledger) :*state (ig/ref ::state)}
+   ::consumer-1-fizzbuzz {:ledger (ig/ref ::ledger) :*state (ig/ref ::state)}
+   ::consumer-2-archiver {:ledger (ig/ref ::ledger) :*state (ig/ref ::state)}
+   })
+
+;; "state" component
+;; system state would usually be a postgres db or such; just an atom here
+;; for illustration
 
 (defmethod ig/init-key ::state
   [_ _]
-  ;; system state would usually be a db or such
-  (atom {:counter 0 :commander-last-saw-eid 0}))
+  (atom {:counter 0
+         ;; last event-ids processed
+         ;; (in practice these should be persisted someplace. Here we'll
+         ;; restart the commander from earliest message every time the system
+         ;; starts up).
+         :last-eids {::commander 0
+                     ::consumer-1-fizzbuzz 0
+                     ::consumer-2-archiver 0}}))
+
+;; redis component
 
 (defmethod ig/init-key ::redis
   [_ {:keys [uri]}]
@@ -159,83 +182,120 @@
       (throw (ex-info "can't communicate with redis" opts)))
     opts))
 
-(defn transact!
-  "Alter system state in response to commands."
-  [*state evt]
-  (validate! schema:issued-cmd evt)
-  ;; increment the counter here ... in practice this can be a multimethod
-  ;; dispatching on the command name
-  #:evt{:name :command/accepted
-        :parent-id ""
-        :data {}})
-
-(defmethod ig/init-key ::commander
-  ;; the commander's job is to act on command-submitted events
-  ;; it only knows the ledger in-out channel
-  [_ {:keys [*state ledger]}]
-  (let [c (a/chan)
-        #_#__worker (a/go-loop []
-                      (when-some [evt (a/<! c)]
-                        (let [tx-evts (transact! *system-state evt)]
-                          (push ledger tx-evts))
-                        (recur))
-                      (prn "closed commander intake channel"))]
-    (listen-for-events ledger #{:evt/command-submitted} c)))
+;; ledger component
 
 (defmethod ig/init-key ::ledger
-  [_ {:keys [stream-key redis]}]
-  (let [c (a/chan 64)]
-    #_(a/go-loop []
-        (when-some [_ (<! c)]
-          (prn "do stuff")
-          #_(recur))
-        (prn "stopping ledger"))
-    (->RedisLedger redis stream-key c)))
+  [_ {:keys [stream redis]}]
+  (let [pub-chan (a/chan 8)]
+    (->RedisLedger redis stream pub-chan)))
 
 (defmethod ig/halt-key! ::ledger
   [_ this]
   (a/close! (:pub-chan this)))
 
-;; last event-ids processed
-;; (In practice this should be persisted someplace. Here we'll restart the
-;; commander from earliest message every time the system starts up).
-(defonce *LAST-PROCESSED-EIDS (atom {::commander 0 ::consumer-2 0}))
+;; commander component
+
+(defn get-cmd-name [evt]
+  (validate! schema:issued-cmd evt)
+  (get-in evt [:evt/id :cmd-name]))
+
+(defmulti transact!
+  "Mutate system state in response to an issued command."
+  (fn [_*state evt] (get-cmd-name evt)))
+
+(defmethod transact! :default
+  [_ evt]
+  ;; Default action is to reject the command and not change system state. We
+  ;; allow-list new commands by implementing new multimethods. This lets us put
+  ;; the method bodies closer to the other code for the specific domain.
+  (let [parent-id (:evt/id evt)
+        cmd-name (get-cmd-name evt)]
+    #:evt{:name 'command/rejected
+          :parent-id parent-id
+          :data {:cmd/name cmd-name
+                 :reason "no handler for cmd"}}))
+
+(defn matches-evt?
+  [evts]
+  (let [pred (set evts)]
+    (validate! [:set schema:evt-name] pred)
+    pred))
+
+(defmethod ig/init-key ::commander
+  ;; the commander's job is to act on command-submitted events
+  ;; it provides a channel for the ledger to stuff new events into
+  ;; we use a filter on the channel to pay attention to only issued commands
+  [_ {:keys [*state ledger]}]
+  (let [chan (a/chan 8 #_(filter))]
+    (a/go
+     (loop []
+       (when-some [evt (a/<! chan)]
+         ;; we know it's a command/issued because we filtered the chan
+         (try (transact! *state evt)
+           (catch Exception ex
+             (let [{parent-id :evt/id
+                    author-id :evt/author-id} evt
+                   cmd-name (get-cmd-name evt)]
+               (push-event ledger #:evt{:author-id author-id
+                                        :parent-id parent-id
+                                        :name 'command/rejected
+                                        :data {:cmd/name cmd-name
+                                               :reason (ex-message ex)}}))))
+         (recur)))
+     (print "closing commander chan"))
+    (listen-for-events ledger chan)
+    {:chan chan :ledger ledger}))
 
 (defmethod ig/halt-key! ::commander
-  [_ c]
-  (a/close! c))
+  [_ this]
+  (stop-listening-for-events (:ledger this) (:chan this))
+  (a/close! (:chan this)))
 
-(defmethod ig/init-key ::consumer-1
-  ;; eg an emailer that fires when the counter hits a multiple of 10
-  [_ {}])
+;; example consumer component
+;; eg a logger that fires when the counter achieves fizzbuzz
 
-(defmethod ig/init-key ::consumer-2
-  ;; eg a process that persists old events someplace else and
-  ;; runs XTRIM to avoid letting the redis stream grow without bound
-  [_ {}])
+(defmethod ig/init-key ::consumer-1-fizzbuzz
+  [_ {:keys [ledger *state]}]
+  (let [chan (a/chan (a/dropping-buffer 8)
+                     (filter (constantly true)))]
+    (listen-for-events ledger chan)))
+
+;; example consumer component
+;; eg a process that persists old events someplace else and trims the old event
+;; stream so it doesn't grow without bound in redis
+
+(defmethod ig/init-key ::consumer-2-archiver
+  [_ {:keys [ledger *state]}]
+  (let [chan (a/chan (a/dropping-buffer 8)
+                     (filter (constantly true)))]
+    (listen-for-events ledger chan)))
 
 (defn go []
   (integrant.repl/set-prep! #(ig/prep system-config))
   (integrant.repl/go))
 
 ;;
-;; Example specific domain of an incrementing counter
+;; Example of the specific domain of an incrementing counter
 ;;
 
-;; preds for filter/remove on chans
-(defn good-evt? [evts]
-  (let [pred (set evts)]
-    (validate! [:set schema:evt-name] good-evt?)
-    pred))
+(defmethod transact! 'INCREMENT-COUNTER!
+  [*state evt]
+  (let [parent-id (:evt/id evt)
+        cmd-name (get-cmd-name evt)
+        authzd? (= (:evt/author-id evt) "authorized-author")]
+    ;; increment the counter here if authzd
+    (when-not authzd?
+      (throw (ex-info "not authorized" {:evt/author-id (:evt/author-id evt)
+                                        :evt/id parent-id
+                                        :cmd/name cmd-name})))
+    (swap! *state :counter inc)
+    #:evt{:name      'command/accepted
+          :parent-id parent-id
+          :data      {:cmd/name cmd-name}}))
 
-(defn audience? [user-id]
-  (fn [evt] (= user-id (get-in evt [:evt/metadata :audience-id]))))
-
-(defn filter-events [evts] (filter (good-evt? evts)))
-
-(defn filter-audience [user-id] (filter (audience? user-id)))
-
-(defn increment-counter! [ledger author-id]
+(defn increment-counter!
+  "Issue a command to increment the counter."
+  [ledger author-id]
   (push-event ledger
               #:evt{:name 'command/submitted
                     :data #:cmd{:name 'INCREMENT-COUNTER!
@@ -243,21 +303,29 @@
                                 :data {}}}))
 
 (comment
-  (go)
+  (try (go) (catch Exception ex (print (ex-data ex))))
   (halt)
-  (reset)
-  (require '[integrant.repl.state :as irs])
-  (def redis (::redis irs/system))
-  (def commander (::commander irs/system))
-  (def ledger (::ledger irs/system))
+  (try (reset) (catch Exception ex (prn (ex-data ex))))
+  (do
+    (require '[integrant.repl.state :as irs])
+    (def redis (::redis irs/system))
+    (def ledger (::ledger irs/system))
+    (def commander (::commander irs/system)))
+  (a/>!! (-> commander :chan) "test")
+  (a/close! (:chan commander))
   (increment-counter! ledger "authorized-author")
   (increment-counter! ledger "unauthorized-author")
-  (filter-events '#{A B C})
-
   (get-all-evts ledger)
-  (def stream-name (:stream ledger))
-  (wcar redis (car/xadd stream-name "*" "x" {:foo "bar"}))
-  (wcar redis (car/xread "count" 2 "streams" stream-name 0))
-  (wcar redis (car/xread "block" 300 "streams" stream-name "$"))
-  (wcar redis (car/xdel stream-name "1692989244519-0"))
-  (wcar redis (car/xtrim stream-name "MAXLEN" 0)))
+  (def stream (:stream ledger))
+  (wcar redis (car/xadd stream "*" "x" {:foo "bar"}))
+  (wcar redis (car/xread "count" 2 "streams" stream 0))
+  (wcar redis (car/xread "block" 300 "streams" stream "$"))
+  (wcar redis (car/xdel stream "1692989244519-0"))
+  (wcar redis (car/xtrim stream "MAXLEN" 0)))
+
+;; todo
+;; - figure out validation
+;; - get ledger pulling events, need a/alts
+;; - get command acceptance working
+;; - get command rejection working
+;; - xtrim and max queue length
