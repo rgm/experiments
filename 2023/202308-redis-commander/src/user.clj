@@ -6,7 +6,8 @@
    [malli.core :as m]
    [integrant.core :as ig]
    [integrant.repl :refer [halt reset]]
-   [taoensso.carmine :as car :refer [wcar]]))
+   [taoensso.carmine :as car :refer [wcar]]
+   [taoensso.timbre :as log]))
 
 ;; DRAMATIS PERSONAE:
 ;; evt ......... Event, a map
@@ -24,10 +25,12 @@
 ;;
 
 (defn validate! [spec value]
-  (print value)
   (when-not (m/validate spec value)
-    (let [data {:value value :spec spec :err (m/explain spec value)}]
-      (throw (ex-info "my invalid value" data)))))
+    (let [data {:reason ::malli-failure
+                :value value
+                :spec spec
+                :err (m/explain spec value)}]
+      (throw (ex-info "malli failure" data)))))
 
 (def schema:evt-name symbol?)
 
@@ -104,34 +107,96 @@
   (let [ms (first (str/split entry-id #"-"))]
     (java.time.Instant/ofEpochMilli (parse-long ms))))
 
+(defn redis-entry->evt [re]
+  (let [[eid [_ evt]] re]
+    (assoc evt :evt/id eid :evt/ts (redis-entry-id->ts eid))))
+
 (defn get-all-evts [ledger]
   ;; nb. redis stream ids are timestamps, just derived from redis entry id
   ;; so extract an inst to get a ts; we don't need to record this separately
   (->> (wcar (:redis ledger) (car/xrange (:stream ledger) "-" "+"))
-       (map (fn [[redis-event-id [_ m]]]
-              (assoc m
-                     :evt/id redis-event-id
-                     :evt/ts (redis-entry-id->ts redis-event-id))))))
+       (map redis-entry->evt)))
 
 (defprotocol ILedger
+  (start-delivering! [this] [this last-eid]
+    "Start the ledger distributing new events")
+  (stop-delivering! [this]
+    "Stop the ledger from distributing new events")
+  (delivering? [this]
+    "Is the ledger delivering events?")
   (push-event [this evts]
-    "Add an event to the ledger.")
+    "Add an event to the ledger for distribution.")
   (listen-for-events [this chan]
-    "Listen for new events on chan.")
+    "Connect chan to the ledger for delivery of new events.")
   (stop-listening-for-events [this chan]
-    "Stop listening for new events on chan.")
+    "Disconnect chan from the ledger.")
   (trim-events [this eid]
     "Trim old events before eid."))
 
-(defrecord RedisLedger [redis stream pub-chan]
-  ;; conceal redis's presence behind a facade
-  ;; the ledger's job is to persist events and pass them on
-  ;; persistence is a bit fake here since clients push directly to redis behind
-  ;; the abstraction of a "ledger" object ... we could buffer with a chan but w/e
+(defn read-events
+  "Read events from a Redis stream.
+
+   The call will block until the end of timeout, and will:
+   - succeed with valid events;
+   - return nil if no event arrived during the timeout; or
+   - throw if the event that was pulled from the stream was not valid.
+
+   Pass 0 for timeout to wait forever. Pass $ for last-eid to get the 'next'
+   event."
+  [redis stream batch-size timeout-ms last-eid]
+  (when-let [redis-entries (wcar redis (car/xread
+                                        "COUNT" batch-size
+                                        "BLOCK" timeout-ms
+                                        "STREAMS" stream
+                                        last-eid))]
+    (let [evts (->> redis-entries first second (map redis-entry->evt))]
+      (doseq [evt evts] (validate! schema:evt evt))
+      evts)))
+
+(defrecord RedisLedger [redis stream chan *state]
+  ;; conceal redis's presence behind a facade ... the ledger's job is only to
+  ;; persist events and then pass them on, not to act on them
+  ;; pass in a configured channel; the delivery loop will throw events onto it
+  ;; as they occur
   ILedger
+  (start-delivering! [this]
+    (start-delivering! this "$")) ;; "$" in redis is "last event"
+  (start-delivering! [_ last-eid]
+    (log/debug "entering delivery loop")
+    (swap! *state assoc :delivering? true)
+    ;; block on redis reads on a separate thread and ship events off on the
+    ;; channel when they arrive
+    (a/thread
+     (loop [last-eid last-eid]
+       (log/debug "running delivery loop")
+       (if (:delivering? @*state)
+         (let [batch-size 1
+               timeout-ms 0 ;; wait "forever"
+               evts (read-events redis stream batch-size timeout-ms
+                                 last-eid)]
+           (doseq [evt evts] (a/>!! chan evt))
+           (recur (-> evts last :evt/id)))
+         (do
+          (log/debug "exiting delivery loop")
+          (swap! *state assoc :delivering? false)
+          :done))))
+    :started)
+
+  (stop-delivering! [_]
+    ;; nb. will keep delivering til the last XREAD timeout expires with nil or
+    ;; possibly one last event
+    (swap! *state assoc :delivering? false)
+    :stopped)
+
+  (delivering? [_]
+    (boolean (:delivering? @*state)))
+
   (push-event [_ evt]
     (validate! schema:evt evt)
-    (wcar redis (car/xadd stream "*" "evt" evt)))
+    (wcar redis (car/xadd stream
+                          ; "MAXLEN" "~" 5 ;; to cap stream size in redis
+                          "*"
+                          "evt" evt)))
 
   (listen-for-events [_ chan]
     ;; audience fan-out ... what about making channels that have a filter on
@@ -142,8 +207,9 @@
   (stop-listening-for-events [_ chan])
 
   (trim-events [_ eid]
-    ;; do XTRIM stuff
-    ))
+    ;; car/xtrim seems to have trouble rn, so use redis-call
+    ;; https://github.com/taoensso/carmine/issues/283
+    (wcar redis (car/redis-call [:xtrim stream "MINID" "~" eid]))))
 
 ;;
 ;; integrant
@@ -153,10 +219,9 @@
   {::state               {}
    ::redis               {:uri "redis://localhost:6379/2"}
    ::ledger              {:redis (ig/ref ::redis) :stream "myledger"}
-   ::commander           {:ledger (ig/ref ::ledger) :*state (ig/ref ::state)}
-   ::consumer-1-fizzbuzz {:ledger (ig/ref ::ledger) :*state (ig/ref ::state)}
-   ::consumer-2-archiver {:ledger (ig/ref ::ledger) :*state (ig/ref ::state)}
-   })
+   #_#_::commander           {:ledger (ig/ref ::ledger) :*state (ig/ref ::state)}
+   #_#_::consumer-1-fizzbuzz {:ledger (ig/ref ::ledger) :*state (ig/ref ::state)}
+   #_#_::consumer-2-archiver {:ledger (ig/ref ::ledger) :*state (ig/ref ::state)}})
 
 ;; "state" component
 ;; system state would usually be a postgres db or such; just an atom here
@@ -186,12 +251,21 @@
 
 (defmethod ig/init-key ::ledger
   [_ {:keys [stream redis]}]
-  (let [pub-chan (a/chan 8)]
-    (->RedisLedger redis stream pub-chan)))
+  ;; a sliding buffer is arguably what we want: at a certain point we're
+  ;; interested in novelty and if downstream can't keep up we sacrifice the old
+  ;; events
+  (let [chan (a/chan (a/sliding-buffer 256))
+        ledger (map->RedisLedger {:redis redis
+                                  :stream stream
+                                  :chan chan
+                                  :*state (atom {})})]
+    (start-delivering! ledger)
+    ledger))
 
 (defmethod ig/halt-key! ::ledger
   [_ this]
-  (a/close! (:pub-chan this)))
+  (a/close! (:chan this))
+  (stop-delivering! this))
 
 ;; commander component
 
@@ -221,34 +295,26 @@
     (validate! [:set schema:evt-name] pred)
     pred))
 
+(defn process-command! [*state evt]
+  (prn evt))
+
 (defmethod ig/init-key ::commander
   ;; the commander's job is to act on command-submitted events
   ;; it provides a channel for the ledger to stuff new events into
   ;; we use a filter on the channel to pay attention to only issued commands
   [_ {:keys [*state ledger]}]
-  (let [chan (a/chan 8 #_(filter))]
-    (a/go
-     (loop []
-       (when-some [evt (a/<! chan)]
-         ;; we know it's a command/issued because we filtered the chan
-         (try (transact! *state evt)
-           (catch Exception ex
-             (let [{parent-id :evt/id
-                    author-id :evt/author-id} evt
-                   cmd-name (get-cmd-name evt)]
-               (push-event ledger #:evt{:author-id author-id
-                                        :parent-id parent-id
-                                        :name 'command/rejected
-                                        :data {:cmd/name cmd-name
-                                               :reason (ex-message ex)}}))))
-         (recur)))
-     (print "closing commander chan"))
+  (let [chan (a/chan 1)
+        worker (a/go-loop []
+                 (when-some [evt (a/<! chan)]
+                   (process-command! *state evt)
+                   (recur)))]
     (listen-for-events ledger chan)
-    {:chan chan :ledger ledger}))
+    {:chan chan :worker worker :ledger ledger}))
 
 (defmethod ig/halt-key! ::commander
   [_ this]
   (stop-listening-for-events (:ledger this) (:chan this))
+  (a/close! (:worker this))
   (a/close! (:chan this)))
 
 ;; example consumer component
@@ -298,34 +364,31 @@
   [ledger author-id]
   (push-event ledger
               #:evt{:name 'command/submitted
+                    :author-id author-id
                     :data #:cmd{:name 'INCREMENT-COUNTER!
-                                :author author-id
                                 :data {}}}))
 
 (comment
+  (alter-var-root #'*out* (constantly *out*)) ;; https://stackoverflow.com/a/27056185
   (try (go) (catch Exception ex (print (ex-data ex))))
   (halt)
-  (try (reset) (catch Exception ex (prn (ex-data ex))))
+  (try (reset) (catch Exception ex (tap> (ex-data ex))))
   (do
     (require '[integrant.repl.state :as irs])
     (def redis (::redis irs/system))
     (def ledger (::ledger irs/system))
-    (def commander (::commander irs/system)))
-  (a/>!! (-> commander :chan) "test")
-  (a/close! (:chan commander))
+    (def stream (:stream ledger)))
+  (start-delivering! ledger)
+  (stop-delivering! ledger)
+
+  ;; use futures or you'll block your repl
+  (future (tap> (read-events redis "myledger" 1 0 "$")))
+  (future (tap> (a/<!! (:chan ledger))))
+
   (increment-counter! ledger "authorized-author")
   (increment-counter! ledger "unauthorized-author")
-  (get-all-evts ledger)
-  (def stream (:stream ledger))
-  (wcar redis (car/xadd stream "*" "x" {:foo "bar"}))
-  (wcar redis (car/xread "count" 2 "streams" stream 0))
-  (wcar redis (car/xread "block" 300 "streams" stream "$"))
-  (wcar redis (car/xdel stream "1692989244519-0"))
-  (wcar redis (car/xtrim stream "MAXLEN" 0)))
+  (count (get-all-evts ledger)))
 
 ;; todo
-;; - figure out validation
-;; - get ledger pulling events, need a/alts
 ;; - get command acceptance working
 ;; - get command rejection working
-;; - xtrim and max queue length

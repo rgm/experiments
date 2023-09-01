@@ -1,8 +1,10 @@
 {:paths ["src" "test"]
  :deps
  {com.taoensso/carmine {:mvn/version "3.2.0"}
+  com.taoensso/timbre {:mvn/version "6.2.2"}
+  djblue/portal {:mvn/version "0.46.0"}
   integrant/integrant {:mvn/version "0.8.1"}
-  metosin/malli {:mvn/version "0.11.0"}
   integrant/repl {:mvn/version "0.3.2"}
   lambdaisland/kaocha {:mvn/version "1.85.1342"}
+  metosin/malli {:mvn/version "0.11.0"}
   org.clojure/core.async {:mvn/version "1.6.673"}}}
