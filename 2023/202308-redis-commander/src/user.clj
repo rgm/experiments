@@ -1,13 +1,14 @@
 (ns user
   "Try using redis streams as the ledger/backbone for a commander architecture."
   (:require
+   [clojure.core.async :as a]
    [clojure.string :as str]
-   [clojure.core.async :as a :refer [<! >! <!! >!!]]
-   [malli.core :as m]
    [integrant.core :as ig]
    [integrant.repl :refer [halt reset]]
+   [malli.core :as m]
+   [portal]
    [taoensso.carmine :as car :refer [wcar]]
-   [taoensso.timbre :as log]))
+   [taoensso.timbre :as timbre]))
 
 ;; DRAMATIS PERSONAE:
 ;; evt ......... Event, a map
@@ -162,29 +163,31 @@
   (start-delivering! [this]
     (start-delivering! this "$")) ;; "$" in redis is "last event"
   (start-delivering! [_ last-eid]
-    (log/debug "entering delivery loop")
+    (timbre/debug "starting delivery loop")
     (swap! *state assoc :delivering? true)
+    (swap! *state assoc :mult (a/mult chan))
     ;; block on redis reads on a separate thread and ship events off on the
     ;; channel when they arrive
     (a/thread
-     (loop [last-eid last-eid]
-       (log/debug "running delivery loop")
-       (if (:delivering? @*state)
-         (let [batch-size 1
-               timeout-ms 0 ;; wait "forever"
-               evts (read-events redis stream batch-size timeout-ms
-                                 last-eid)]
-           (doseq [evt evts] (a/>!! chan evt))
-           (recur (-> evts last :evt/id)))
-         (do
-          (log/debug "exiting delivery loop")
-          (swap! *state assoc :delivering? false)
-          :done))))
+      (loop [last-eid last-eid]
+        (timbre/debug "running delivery loop")
+        (if (:delivering? @*state)
+          (let [batch-size 1
+                timeout-ms 0 ;; wait "forever"
+                evts (read-events redis stream batch-size timeout-ms
+                                  last-eid)]
+            (doseq [evt evts] (a/>!! chan evt))
+            (recur (-> evts last :evt/id)))
+          (do
+            (timbre/debug "stopping delivery loop")
+            (swap! *state assoc :delivering? false)
+            :done))))
     :started)
 
   (stop-delivering! [_]
     ;; nb. will keep delivering til the last XREAD timeout expires with nil or
     ;; possibly one last event
+    (timbre/debug "marking delivery loop as stopped")
     (swap! *state assoc :delivering? false)
     :stopped)
 
@@ -192,6 +195,7 @@
     (boolean (:delivering? @*state)))
 
   (push-event [_ evt]
+    (timbre/debug "pushing evt to redis")
     (validate! schema:evt evt)
     (wcar redis (car/xadd stream
                           ; "MAXLEN" "~" 5 ;; to cap stream size in redis
@@ -199,12 +203,16 @@
                           "evt" evt)))
 
   (listen-for-events [_ chan]
-    ;; audience fan-out ... what about making channels that have a filter on
-    ;; them and returning that? ... maybe best handled by consumer since
-    ;; it can configure the channel with whatever transducers it feels like adding
-    )
+    ;; audience fan-out using mult/tap
+    ;; nb. the provided chan can slow down the mult; make sure they're buffered
+    ;; correctly. Provide transducers on the channels to filter for specific
+    ;; events.
+    (timbre/debug "connecting" chan "to ledger mult")
+    (a/tap (:mult @*state) chan))
 
-  (stop-listening-for-events [_ chan])
+  (stop-listening-for-events [_ chan]
+    (timbre/debug "disconnecting" chan "from ledger mult")
+    (a/untap (:mult @*state) chan))
 
   (trim-events [_ eid]
     ;; car/xtrim seems to have trouble rn, so use redis-call
@@ -216,10 +224,11 @@
 ;;
 
 (def system-config
-  {::state               {}
+  {::portal              {}
+   ::state               {:counter 0}
    ::redis               {:uri "redis://localhost:6379/2"}
    ::ledger              {:redis (ig/ref ::redis) :stream "myledger"}
-   #_#_::commander           {:ledger (ig/ref ::ledger) :*state (ig/ref ::state)}
+   ::commander           {:ledger (ig/ref ::ledger) :*state (ig/ref ::state)}
    #_#_::consumer-1-fizzbuzz {:ledger (ig/ref ::ledger) :*state (ig/ref ::state)}
    #_#_::consumer-2-archiver {:ledger (ig/ref ::ledger) :*state (ig/ref ::state)}})
 
@@ -228,8 +237,8 @@
 ;; for illustration
 
 (defmethod ig/init-key ::state
-  [_ _]
-  (atom {:counter 0
+  [_ {:keys [counter]}]
+  (atom {:counter counter
          ;; last event-ids processed
          ;; (in practice these should be persisted someplace. Here we'll
          ;; restart the commander from earliest message every time the system
@@ -237,6 +246,9 @@
          :last-eids {::commander 0
                      ::consumer-1-fizzbuzz 0
                      ::consumer-2-archiver 0}}))
+
+(defmethod ig/init-key ::portal [_ _] (portal/start-portal))
+(defmethod ig/halt-key! ::portal [_ _] (portal/stop-portal))
 
 ;; redis component
 
@@ -277,17 +289,20 @@
   "Mutate system state in response to an issued command."
   (fn [_*state evt] (get-cmd-name evt)))
 
-(defmethod transact! :default
-  [_ evt]
-  ;; Default action is to reject the command and not change system state. We
-  ;; allow-list new commands by implementing new multimethods. This lets us put
-  ;; the method bodies closer to the other code for the specific domain.
+(defn reject-cmd [evt reason data]
   (let [parent-id (:evt/id evt)
         cmd-name (get-cmd-name evt)]
     #:evt{:name 'command/rejected
           :parent-id parent-id
           :data {:cmd/name cmd-name
                  :reason "no handler for cmd"}}))
+
+(defmethod transact! :default
+  [_ evt]
+  ;; Default action is to reject the command and not change system state. We
+  ;; allow-list new commands by implementing new multimethods. This lets us put
+  ;; the method bodies closer to the other code for the specific domain.
+  (reject-cmd evt "no-handler-for-cmd" {}))
 
 (defn matches-evt?
   [evts]
@@ -296,14 +311,22 @@
     pred))
 
 (defn process-command! [*state evt]
-  (prn evt))
+  (timbre/debug "transacting command" (get-cmd-name evt))
+  (tap> ["COMMANDER GOT EVENT" evt])
+  (try
+    (transact! *state evt)
+    (catch Exception ex
+      (reject-cmd evt "exception-in-transact!"
+                  {:message (ex-message ex)
+                   :data (ex-data ex)}))))
 
 (defmethod ig/init-key ::commander
   ;; the commander's job is to act on command-submitted events
   ;; it provides a channel for the ledger to stuff new events into
   ;; we use a filter on the channel to pay attention to only issued commands
   [_ {:keys [*state ledger]}]
-  (let [chan (a/chan 1)
+  (timbre/info "starting commander component")
+  (let [chan (a/chan 1 (matches-evt? #{'command/submitted}))
         worker (a/go-loop []
                  (when-some [evt (a/<! chan)]
                    (process-command! *state evt)
@@ -314,7 +337,6 @@
 (defmethod ig/halt-key! ::commander
   [_ this]
   (stop-listening-for-events (:ledger this) (:chan this))
-  (a/close! (:worker this))
   (a/close! (:chan this)))
 
 ;; example consumer component
@@ -346,6 +368,7 @@
 
 (defmethod transact! 'INCREMENT-COUNTER!
   [*state evt]
+  (timbre/debug "processing 'INCREMENT-COUNTER!")
   (let [parent-id (:evt/id evt)
         cmd-name (get-cmd-name evt)
         authzd? (= (:evt/author-id evt) "authorized-author")]
@@ -374,6 +397,7 @@
   (halt)
   (try (reset) (catch Exception ex (tap> (ex-data ex))))
   (do
+    (go)
     (require '[integrant.repl.state :as irs])
     (def redis (::redis irs/system))
     (def ledger (::ledger irs/system))
@@ -387,7 +411,8 @@
 
   (increment-counter! ledger "authorized-author")
   (increment-counter! ledger "unauthorized-author")
-  (count (get-all-evts ledger)))
+  (last (get-all-evts ledger))
+  (::state irs/system))
 
 ;; todo
 ;; - get command acceptance working
