@@ -1,5 +1,6 @@
 (ns portal
   (:require
+   [integrant.core :as ig]
    [portal.api :as p]))
 
 (defonce *p nil)
@@ -13,6 +14,9 @@
   (remove-tap #'p/submit)
   (p/close)
   (alter-var-root #'*p (constantly nil)))
+
+(defmethod ig/init-key :user/portal [_ _] (start-portal))
+(defmethod ig/halt-key! :user/portal [_ _] (stop-portal))
 
 (comment
   ;; https://github.com/djblue/portal#api
