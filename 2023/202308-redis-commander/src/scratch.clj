@@ -12,11 +12,11 @@
   ;; https://stackoverflow.com/a/27056185
   (alter-var-root #'*out* (constantly *out*))
   (try (cmdr/go) (catch Exception ex (print (ex-data ex))))
-  (timbre/set-min-level! :warn)
   (timbre/set-min-level! :trace)
   (halt)
   (try (reset) (catch Exception ex (tap> (ex-data ex))))
   (do
+   (timbre/set-min-level! :info)
    #_(.addShutdownHook
       (Runtime/getRuntime)
       (Thread. #(do (timbre/info "stopping system")

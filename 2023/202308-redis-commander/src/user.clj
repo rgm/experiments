@@ -5,6 +5,7 @@
    - https://www.youtube.com/watch?v=B1-gS0oEtYc
    - https://www.youtube.com/watch?v=qDNPQo9UmJA"
   (:require
+   [clojure.test :as t :refer [deftest testing is]]
    [clojure.core.async :as a]
    [clojure.string :as str]
    [integrant.core :as ig]
@@ -259,6 +260,8 @@
     ;; nb. the provided chan can slow down the mult; make sure they're buffered
     ;; correctly. Provide transducers on the channels to filter for specific
     ;; events.
+    ;; (...hm, should ledger be the one that maintains the state of its
+    ;; consumers for trimming? Or should consumers have to ACK someplace else?)
     (timbre/debug "connecting" chan "to ledger mult")
     (a/tap mult-chan chan)
     chan)
@@ -284,11 +287,10 @@
    :user/ledger    {:redis (ig/ref :user/redis)
                     :stream "myledger"}
    :user/commander {:ledger (ig/ref :user/ledger)
-                    :*state (ig/ref :user/state)}
-   #_#_:user/fizzbuzz {:ledger (ig/ref :user/ledger)
-                       :*state (ig/ref :user/state)}
+                    *system-state (ig/ref :user/state)}
+   :user/fizzbuzz  {:ledger (ig/ref :user/ledger)}
    #_#_:user/archiver {:ledger (ig/ref :user/ledger)
-                       :*state (ig/ref :user/state)}})
+                       *system-state (ig/ref :user/state)}})
 
 ;; "state" component
 ;; system state would usually be a postgres db or such; just an atom here
@@ -414,14 +416,14 @@
   ;; the commander's job is to act on command-issued events
   ;; it provides a channel for the ledger to stuff new events into
   ;; we use a filter on the channel to pay attention to only issued commands
-  [_ {:keys [*state ledger]}]
+  [_ {:keys [*system-state ledger]}]
   (timbre/info "starting commander component")
   (let [xf (filter (matches-evt? #{'command/issued}))
         chan (a/chan 1 xf)
         _ (listen-for-events ledger chan)
         worker (a/go-loop []
                  (when-some [evt (a/<! chan)]
-                   (doseq [evt (process-command! *state evt)]
+                   (doseq [evt (process-command! *system-state evt)]
                      (record-event ledger evt))
                    (recur)))]
 
@@ -432,20 +434,53 @@
   ; (stop-listening-for-events (:ledger this) (:chan this))
   (a/close! (:chan this)))
 
-;; example consumer component
-;; eg a logger that fires when the counter achieves fizzbuzz
+;; first example consumer component
+;; eg. a logger that fires when the counter achieves fizzbuzz
 
-#_(defmethod ig/init-key :user/consumer-1-fizzbuzz
-    [_ {:keys [ledger *state]}]
-    (let [chan (a/chan (a/dropping-buffer 8)
-                       (filter (constantly true)))]
-      (listen-for-events ledger chan)))
+(t/with-test
 
-;; example consumer component
-;; eg a process that persists old events someplace else and trims the old event
-;; stream so it doesn't grow without bound in redis
+  (defn fizz-buzz [n]
+    (cond
+      (zero? n)               nil
+      (zero? (rem n (* 3 5))) "FizzBuzz"
+      (zero? (rem n 3))       "Fizz"
+      (zero? (rem n 5))       "Buzz"))
 
-#_(defmethod ig/init-key :user/consumer-2-archiver
+  (is (nil? (fizz-buzz 0)))
+  (is (= "Fizz" (fizz-buzz 3)))
+  (is (nil? (fizz-buzz 4)))
+  (is (= "Buzz" (fizz-buzz 5)))
+  (is (= "Fizz" (fizz-buzz 6)))
+  (is (= "FizzBuzz" (fizz-buzz 15)))
+  (is (= "Buzz" (fizz-buzz 20)))
+  (is (= "FizzBuzz" (fizz-buzz 30))))
+
+(defmethod ig/init-key :user/fizzbuzz
+  [_ {:keys [ledger]}]
+  (timbre/info "starting fizzbuzz component")
+  ;; a consumer could also rely on overall system state but to keep it simple
+  ;; here it's just an internal counter. Thus, we won't emit fizzbuzz in sync
+  ;; with the global counter.
+  (let [chan (a/chan (a/dropping-buffer 8)
+                     (filter (matches-evt? #{'counter/incremented})))
+        worker (a/go-loop [n 0]
+                 (when-let [fb (fizz-buzz n)] (timbre/error fb))
+                 (when-some [_evt (a/<! chan)] (recur (inc n))))]
+    (listen-for-events ledger chan)
+    {:chan chan :worker worker}))
+
+(defmethod ig/halt-key! :user/fizzbuzz
+  [_ {:keys [chan worker]}]
+  (a/close! worker)
+  (a/close! chan))
+
+;; second example consumer component
+;; eg. a process that persists old events someplace else and trims the old
+;; event stream so it doesn't grow without bound in redis. Other consuming
+;; processes would have to ACK the last eid they successfully cared about into
+;; persistent storage somewhere.
+
+#_(defmethod ig/init-key :user/archiver
     [_ {:keys [ledger *state]}]
     (let [chan (a/chan (a/dropping-buffer 8)
                        (filter (constantly true)))]
