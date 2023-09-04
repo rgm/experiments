@@ -5,11 +5,10 @@
    - https://www.youtube.com/watch?v=B1-gS0oEtYc
    - https://www.youtube.com/watch?v=qDNPQo9UmJA"
   (:require
-   [clojure.pprint :as pp]
    [clojure.core.async :as a]
    [clojure.string :as str]
    [integrant.core :as ig]
-   [integrant.repl :refer [halt reset]]
+   [integrant.repl]
    [malli.core :as m]
    [malli.dev.pretty :as pretty]
    [malli.util :as mu]
@@ -34,9 +33,8 @@
 
 (defn validate! [spec value]
   (when-not (m/validate spec value)
-    (pp/pprint value)
     (pretty/explain spec value)
-    (let [data {:reason ::malli-failure
+    (let [data {:reason :user/malli-failure
                 :value value
                 :spec spec
                 :err (m/explain spec value)}]
@@ -93,12 +91,58 @@
 (def schema:issued-cmd
   "Regardless of whether a command is ultimately accepted or rejected,
    processing is kicked off by recording the fact that it was issued (which is
-   always true).
-   "
+   always true)."
   (mu/merge schema:evt
             [:map
              [:evt/name [:= 'command/issued]]
              [:evt/data schema:cmd]]))
+
+(defn get-cmd-name [evt] (get-in evt [:evt/data :cmd/name]))
+
+(defn get-cmd-id [evt] (get-in evt [:evt/data :cmd/id]))
+
+(defn make-cmd-issuance-evt
+  ([author-id cmd-name] (make-cmd-issuance-evt author-id cmd-name {}))
+  ([author-id cmd-name data]
+   #:evt{:name 'command/issued
+         :author-id author-id
+         :data #:cmd {:id (random-uuid)
+                      :name cmd-name
+                      :data data}}))
+
+(defn make-child-evt
+  [author-id evt child-evt-name data]
+  #:evt{:name      child-evt-name
+        :author-id author-id
+        :parent-id (:evt/id evt)
+        :data      data})
+
+(defn make-cmd-rejection-evt
+  [author-id evt reason data]
+  (make-child-evt author-id evt 'command/rejected
+                  (merge data
+                         {:rejection/reason reason
+                          :cmd/id (get-cmd-id evt)
+                          :cmd/name (get-cmd-name evt)})))
+
+(defn make-cmd-acceptance-evt
+  [author-id evt data]
+  (make-child-evt author-id evt 'command/accepted
+                  (merge data
+                         {:cmd/id (get-cmd-id evt)
+                          :cmd/name (get-cmd-name evt)})))
+
+(defn matches-evt?
+  "Make a predicate f :: evt -> Bool returning true when an evt is in the
+   provided set of events."
+  [evts]
+  (let [pred (set evts)]
+    (validate! [:set schema:evt-name] pred)
+    (comp pred :evt/name)))
+
+(defn cmd-evt?
+  [evt]
+  ((matches-evt? '#{command/issued command/accepted command/rejected}) evt))
 
 ;;
 ;; ledger
@@ -112,11 +156,14 @@
   (let [[eid [_ evt]] re]
     (assoc evt :evt/id eid :evt/ts (redis-entry-id->ts eid))))
 
-(defn get-all-evts [ledger]
+(defn get-all-evts
   ;; nb. redis stream ids are timestamps, just derived from redis entry id
   ;; so extract an inst to get a ts; we don't need to record this separately
-  (->> (wcar (:redis ledger) (car/xrange (:stream ledger) "-" "+"))
-       (map redis-entry->evt)))
+  ([ledger] (get-all-evts ledger "-"))
+  ([ledger first-eid]
+   (->> (wcar (:redis ledger)
+              (car/xrange (:stream ledger) first-eid "+"))
+        (map redis-entry->evt))))
 
 (defprotocol ILedger
   (start-delivering! [this] [this last-eid]
@@ -125,7 +172,7 @@
     "Stop the ledger from distributing new events")
   (delivering? [this]
     "Is the ledger delivering events?")
-  (push-event [this evts]
+  (record-event [this evts]
     "Add an event to the ledger for distribution.")
   (listen-for-events [this chan]
     "Connect chan to the ledger for delivery of new events.")
@@ -168,22 +215,22 @@
     ;; block on redis reads on a separate thread and ship events off on the
     ;; channel when they arrive
     (a/thread
-     (loop [last-eid last-eid]
-       (if (:delivering? @*state)
-         (do (timbre/debug "ledger waiting for event")
-             (let [batch-size 1
-                   timeout-ms 0 ;; wait "forever"
-                   evts (read-events redis stream batch-size timeout-ms
-                                     last-eid)]
-               (timbre/debug "delivering event")
-               (doseq [evt evts] (a/>!! pub-chan evt))
-               (recur (-> evts last :evt/id))))
+      (loop [last-eid last-eid]
+        (if (:delivering? @*state)
+          (do (timbre/debug "ledger waiting for event")
+              (let [batch-size 1
+                    timeout-ms 0 ;; wait "forever"
+                    evts (read-events redis stream batch-size timeout-ms
+                                      last-eid)]
+                (timbre/debug "delivering event")
+                (doseq [evt evts] (a/>!! pub-chan evt))
+                (recur (-> evts last :evt/id))))
          ;; there's a bug here:
          ;; if we stop delivery and no event comes in to flush out the queue,
          ;; we'll have 2 loops running
-         (do (timbre/debug "stopping delivery loop")
-             (swap! *state assoc :delivering? false)
-             :done))))
+          (do (timbre/debug "stopping delivery loop")
+              (swap! *state assoc :delivering? false)
+              :done))))
     :started)
 
   (stop-delivering! [_]
@@ -196,7 +243,7 @@
   (delivering? [_]
     (boolean (:delivering? @*state)))
 
-  (push-event [_ evt]
+  (record-event [_ evt]
     (timbre/debug "pushing evt to redis")
     (validate! schema:evt evt)
     (wcar redis (car/xadd stream
@@ -231,35 +278,39 @@
 ;;
 
 (def system-config
-  {::portal              {}
-   ::state               {:counter 0}
-   ::redis               {:uri "redis://localhost:6379/2"}
-   ::ledger              {:redis (ig/ref ::redis) :stream "myledger"}
-   ::commander           {:ledger (ig/ref ::ledger) :*state (ig/ref ::state)}
-   #_#_::consumer-1-fizzbuzz {:ledger (ig/ref ::ledger) :*state (ig/ref ::state)}
-   #_#_::consumer-2-archiver {:ledger (ig/ref ::ledger) :*state (ig/ref ::state)}})
+  {#_#_:user/portal    {}
+   :user/state     {:counter 0}
+   :user/redis     {:uri "redis://localhost:6379/2"}
+   :user/ledger    {:redis (ig/ref :user/redis)
+                    :stream "myledger"}
+   :user/commander {:ledger (ig/ref :user/ledger)
+                    :*state (ig/ref :user/state)}
+   #_#_:user/fizzbuzz {:ledger (ig/ref :user/ledger)
+                       :*state (ig/ref :user/state)}
+   #_#_:user/archiver {:ledger (ig/ref :user/ledger)
+                       :*state (ig/ref :user/state)}})
 
 ;; "state" component
 ;; system state would usually be a postgres db or such; just an atom here
 ;; for illustration
 
-(defmethod ig/init-key ::state
+(defmethod ig/init-key :user/state
   [_ {:keys [counter]}]
   (atom {:counter counter
          ;; last event-ids processed
          ;; (in practice these should be persisted someplace. Here we'll
          ;; restart the commander from earliest message every time the system
          ;; starts up).
-         :last-eids {::commander 0
-                     ::consumer-1-fizzbuzz 0
-                     ::consumer-2-archiver 0}}))
+         :last-eids {:user/commander 0
+                     :user/consumer-1-fizzbuzz 0
+                     :user/consumer-2-archiver 0}}))
 
-(defmethod ig/init-key ::portal [_ _] (portal/start-portal))
-(defmethod ig/halt-key! ::portal [_ _] (portal/stop-portal))
+(defmethod ig/init-key :user/portal [_ _] (portal/start-portal))
+(defmethod ig/halt-key! :user/portal [_ _] (portal/stop-portal))
 
 ;; redis component
 
-(defmethod ig/init-key ::redis
+(defmethod ig/init-key :user/redis
   [_ {:keys [uri]}]
   (let [opts {:pool (car/connection-pool {}) :spec {:uri uri}}]
     (when-not (= "PONG" (wcar opts (car/ping)))
@@ -268,7 +319,7 @@
 
 ;; ledger component
 
-(defmethod ig/init-key ::ledger
+(defmethod ig/init-key :user/ledger
   [_ {:keys [stream redis]}]
   ;; a sliding buffer is arguably what we want: at a certain point we're
   ;; interested in novelty and if downstream can't keep up we sacrifice the old
@@ -282,42 +333,12 @@
     (start-delivering! ledger)
     ledger))
 
-(defmethod ig/halt-key! ::ledger
+(defmethod ig/halt-key! :user/ledger
   [_ this]
   (a/close! (:chan this))
   (stop-delivering! this))
 
 ;; commander component
-
-(defn get-cmd-name [evt] (get-in evt [:evt/data :cmd/name]))
-
-(defn get-cmd-id [evt] (get-in evt [:evt/data :cmd/id]))
-
-(defn make-child-evt
-  [author-id evt child-evt-name data]
-  #:evt{:name      child-evt-name
-        :author-id author-id
-        :parent-id (:evt/id evt)
-        :data      data})
-
-(defn make-cmd-rejection-evt
-  [author-id evt reason data]
-  (make-child-evt author-id
-                  evt
-                  'command/rejected
-                  (merge data
-                         {:cmd/id (get-cmd-id evt)
-                          :cmd/name (get-cmd-name evt)
-                          ::reason reason})))
-
-(defn make-cmd-acceptance-evt
-  [author-id evt data]
-  (make-child-evt author-id
-                  evt
-                  'command/accepted
-                  (merge data
-                         {:cmd/id (get-cmd-id evt)
-                          :cmd/name (get-cmd-name evt)})))
 
 (defmulti transact!
   "Mutate system state in response to an issued command."
@@ -330,12 +351,6 @@
   ;; We allow-list new commands by implementing new multimethods. This lets us
   ;; put the method bodies closer to the code for the specific domain.
   [(make-cmd-rejection-evt author-id evt "no-handler-for-cmd" {})])
-
-(defn matches-evt?
-  [evts]
-  (let [pred (set evts)]
-    (validate! [:set schema:evt-name] pred)
-    (comp pred :evt/name)))
 
 (defn process-command! [*state evt]
   (timbre/debug "transacting command" (get-cmd-name evt))
@@ -351,14 +366,51 @@
     (catch Exception ex
       [(make-cmd-rejection-evt "commander"
                                evt
-                               "exception-in-transact!"
-                               {:message (ex-message ex)
-                                :data (ex-data ex)})])))
+                               (ex-message ex)
+                               {:rejection/data (ex-data ex)})])))
 
-#_(defn list-commands [ledger]
-    (let [events (list-events ledger)]))
+(defn summarize-cmds
+  "Reduce cmds sharing an id into a summary view"
+  [cmd-evts]
+  (let [rfn (fn [acc evt]
+              {:cmd/id (get-cmd-id evt)
+               :cmd/name (get-cmd-name evt)
+               :cmd/verdict (case (:evt/name evt)
+                              command/rejected :verdict/rejected
+                              command/accepted :verdict/accepted
+                              :verdict/unresolved)
+               :evt/ids ((fnil conj [])
+                         (:evt/ids acc)
+                         (:evt/id evt))
+               :evt/author-ids ((fnil conj [])
+                                (:evt/author-ids acc)
+                                (:evt/author-id evt))
+               :evt/tss ((fnil conj [])
+                         (:evt/tss acc)
+                         (:evt/ts evt))})
+        m (->> cmd-evts
+               (sort-by :evt/ts)
+               (reduce rfn {}))]
+    (-> m
+        (assoc :evt/started-at (first (:evt/tss m)))
+        (assoc :evt/processing-ms
+               (if (not= 1 (count (:evt/tss m)))
+                 (apply - (reverse (map #(.toEpochMilli %) (:evt/tss m))))
+                 0))
+        (dissoc :evt/tss))))
 
-(defmethod ig/init-key ::commander
+(defn list-commands
+  "Pluck command event pairs out of event stream."
+  ([ledger] (list-commands ledger "-"))
+  ([ledger first-eid]
+   (->> (get-all-evts ledger first-eid)
+        (filter cmd-evt?)
+        (group-by get-cmd-id)
+        (vals)
+        (map summarize-cmds)
+        (sort-by :evt/started-at))))
+
+(defmethod ig/init-key :user/commander
   ;; the commander's job is to act on command-issued events
   ;; it provides a channel for the ledger to stuff new events into
   ;; we use a filter on the channel to pay attention to only issued commands
@@ -368,16 +420,14 @@
         chan (a/chan 1 xf)
         _ (listen-for-events ledger chan)
         worker (a/go-loop []
-                 (timbre/warn "got here 1" chan)
                  (when-some [evt (a/<! chan)]
-                   (timbre/warn "got here 2")
                    (doseq [evt (process-command! *state evt)]
-                     (push-event ledger evt))
+                     (record-event ledger evt))
                    (recur)))]
 
     {:chan chan :worker worker :ledger ledger}))
 
-(defmethod ig/halt-key! ::commander
+(defmethod ig/halt-key! :user/commander
   [_ this]
   ; (stop-listening-for-events (:ledger this) (:chan this))
   (a/close! (:chan this)))
@@ -385,21 +435,21 @@
 ;; example consumer component
 ;; eg a logger that fires when the counter achieves fizzbuzz
 
-(defmethod ig/init-key ::consumer-1-fizzbuzz
-  [_ {:keys [ledger *state]}]
-  (let [chan (a/chan (a/dropping-buffer 8)
-                     (filter (constantly true)))]
-    (listen-for-events ledger chan)))
+#_(defmethod ig/init-key :user/consumer-1-fizzbuzz
+    [_ {:keys [ledger *state]}]
+    (let [chan (a/chan (a/dropping-buffer 8)
+                       (filter (constantly true)))]
+      (listen-for-events ledger chan)))
 
 ;; example consumer component
 ;; eg a process that persists old events someplace else and trims the old event
 ;; stream so it doesn't grow without bound in redis
 
-(defmethod ig/init-key ::consumer-2-archiver
-  [_ {:keys [ledger *state]}]
-  (let [chan (a/chan (a/dropping-buffer 8)
-                     (filter (constantly true)))]
-    (listen-for-events ledger chan)))
+#_(defmethod ig/init-key :user/consumer-2-archiver
+    [_ {:keys [ledger *state]}]
+    (let [chan (a/chan (a/dropping-buffer 8)
+                       (filter (constantly true)))]
+      (listen-for-events ledger chan)))
 
 (defn go []
   (integrant.repl/set-prep! #(ig/prep system-config))
@@ -412,60 +462,36 @@
 (defmethod transact! 'INCREMENT-COUNTER!
   [author-id *state evt]
   (timbre/debug "processing 'INCREMENT-COUNTER!")
-  (let [parent-id (:evt/id evt)
-        cmd-name (get-cmd-name evt)
-        authzd? (= (:evt/author-id evt) "authorized-author")]
-    ;; increment the counter here if authzd
-    (when-not authzd?
-      (throw (ex-info "not authorized" {:evt/author-id (:evt/author-id evt)
-                                        :evt/id parent-id
-                                        :cmd/name cmd-name})))
-    ;; actually execute the mutation
-    (swap! *state update :counter inc)
 
-    ;; return for recording in the ledger:
-    ;; 1. an event recording that the counter incremented
-    ;; 2. an event recording that the command was accepted by the commander
-    [(make-child-evt author-id evt 'counter/incremented {})
-     (make-cmd-acceptance-evt author-id evt {})]))
+  ;; 1. Actually execute the system mutation if it's valid.
+  ;;
+  ;; the core `transact!` method for a given command is, in most of cases, the
+  ;; place where we finally know enough to know whether the system mutation
+  ;; should be permitted. There may be earlier guards, but this is the moment
+  ;; of final decision.
+  ;;
+  ;; It might involve authz, whether the database is in some state, whether
+  ;; it's Tuesday, etc. etc. The rest is reusable plumbing that should plod
+  ;; through no matter what.
+
+  (let [user (:evt/author-id evt)
+        authzd? (= "authorized-user" user)]
+
+    (when-not authzd? (throw (ex-info "not authorized" {:user user})))
+    (swap! *state update :counter inc))
+
+  ;; 2. Return for recording in the ledger:
+  ;;
+  ;;   a. an evt recording that the counter incremented
+  ;;   b. an evt recording that the cmd was accepted by the cmdr
+
+  [(make-child-evt author-id evt 'counter/incremented {})
+   (make-cmd-acceptance-evt author-id evt {})])
 
 (defn increment-counter!
   "Issue a command to increment the counter."
   [ledger author-id]
-  (push-event ledger
-              #:evt{:name 'command/issued
-                    :author-id author-id
-                    :data #:cmd{:name 'INCREMENT-COUNTER!
-                                :data {}}}))
-
-(comment
-  ;; https://stackoverflow.com/a/27056185
-  (alter-var-root #'*out* (constantly *out*))
-  (try (go) (catch Exception ex (print (ex-data ex))))
-  (halt)
-  (try (reset) (catch Exception ex (tap> (ex-data ex))))
-  (do
-    #_(.addShutdownHook (Runtime/getRuntime)
-                        (Thread. #(do (timbre/info "stopping system")
-                                      (halt))))
-    (go)
-    (require '[integrant.repl.state :as irs])
-    (def redis (::redis irs/system))
-    (def ledger (::ledger irs/system)))
-
-  (delivering? ledger)
-  (start-delivering! ledger)
-  (stop-delivering! ledger)
-
-  ;; use futures or you'll block your repl
-  (future (tap> (read-events redis "myledger" 1 0 "$")))
-  (future (tap> (a/<!! (:chan ledger))))
-
-  (increment-counter! ledger "authorized-author")
-  (increment-counter! ledger "unauthorized-author")
-  (last (get-all-evts ledger))
-  (:*state ledger)
-  (-> irs/system ::state deref :counter))
-
-;; todo
-;; - get command rejection working
+  (let [evt (make-cmd-issuance-evt author-id
+                                   'INCREMENT-COUNTER!
+                                   {})]
+    (record-event ledger evt)))

@@ -6,7 +6,8 @@
 
 (defn start-portal []
   (add-tap #'p/submit)
-  (alter-var-root #'*p p/open))
+  (alter-var-root #'*p p/open)
+  *p)
 
 (defn stop-portal []
   (remove-tap #'p/submit)
