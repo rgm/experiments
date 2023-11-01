@@ -1,0 +1,2 @@
+shadow: npm run dev
+tailwind: npx tailwindcss -i ./src/input.css -o ./public/output.css --watch
