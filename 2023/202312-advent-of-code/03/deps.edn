@@ -1,0 +1,3 @@
+{
+:paths ["."] :deps {nrepl/nrepl {:mvn/version "RELEASE"} cider/cider-nrepl {:mvn/version "RELEASE"} org.mentat/emmy {:mvn/version "RELEASE"} io.github.nextjournal/clerk {:mvn/version "RELEASE"}}
+}
