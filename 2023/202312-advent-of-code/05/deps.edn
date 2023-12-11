@@ -1,0 +1,3 @@
+{:paths ["."]
+ :deps {instaparse/instaparse {:mvn/version "1.4.12"}
+        ubergraph/ubergraph {:mvn/version "0.8.2"}}}
