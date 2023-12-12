@@ -1,0 +1,2 @@
+{:linters {}
+ :lint-as {taoensso.tufte/defnp clojure.core/defn}}
