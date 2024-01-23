@@ -1,0 +1,4 @@
+{:lint-as {day8.re-frame.tracing/defn-traced clojure.core/defn
+           day8.re-frame.tracing/fn-traced clojure.core/fn
+           reagent.core/with-let clojure.core/let}
+ :linters {}}

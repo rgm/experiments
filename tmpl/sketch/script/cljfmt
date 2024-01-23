@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+# fmt
+# provide a command ('fix' or 'check') as the argument to this script
+# see https://github.com/weavejester/cljfmt#toolsdeps
+
+cd $(dirname $0)/..
+
+clojure -A:test -Sdeps '{:deps {cljfmt/cljfmt {:mvn/version "RELEASE"}}}' -M -m cljfmt.main --indents .indentation.clj "$@"
