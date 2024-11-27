@@ -1,0 +1,24 @@
+{:paths ["src"]
+ :deps
+ {com.github.steffan-westcott/clj-otel-api {:mvn/version "0.2.7"}
+  com.taoensso/slf4j-telemere {:mvn/version "1.0.0-beta21"}
+  com.taoensso/telemere {:mvn/version "1.0.0-RC1"}
+  ring/ring {:mvn/version "1.13.0"}}
+ :aliases
+ {:otel
+  {:jvm-opts
+   ; https://docs.honeycomb.io/send-data/java/opentelemetry-agent/#configure
+   ; https://docs.honeycomb.io/troubleshoot/common-issues/sending-data/#java
+   ["-javaagent:opentelemetry-javaagent.jar"
+    ;; traces end up in this dataset
+    "-Dotel.resource.attributes=service.name=TEST-SERVICE"
+    "-Dotel.traces.exporter=otlp"
+    "-Dotel.metrics.exporter=otlp"
+    "-Dotel.exporter.otlp.endpoint=https://api.honeycomb.io"
+    "-Dotel.exporter.otlp.headers=x-honeycomb-team=API_KEY"
+    "-Dotel.exporter.otlp.metrics.endpoint=https://api.honeycomb.io/v1/metrics"
+    ;; can spec a different dataset for metrics
+    "-Dotel.exporter.otlp.metrics.headers=x-honeycomb-team=API_KEY,x-honeycomb-dataset=TEST-SERVICE"
+    "-Dotel.exporter.otlp.traces.headers=x-honeycomb-team=API_KEY"
+    "-Dotel.logs.exporter=none"
+    "-Dotel.javaagent.debug=true"]}}}
