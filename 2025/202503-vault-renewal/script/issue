@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+source config.env
+
+export VAULT_TOKEN="my_root_token"
+vault token create -policy=my_test_policy -period=1m -field=token -display-name "my_client_token" | tee CLIENT_TOKEN.txt

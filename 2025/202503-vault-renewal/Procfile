@@ -1,0 +1,3 @@
+client: script/repl
+vault: vault server -dev -dev-root-token-id=my_root_token
+setup: sleep 3 && script/setup && script/issue

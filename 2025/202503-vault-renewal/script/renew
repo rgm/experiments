@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+source config.env
+
+VAULT_TOKEN=$(cat CLIENT_TOKEN.txt)
+vault token renew "$VAULT_TOKEN"

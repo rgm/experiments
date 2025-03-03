@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+source config.env
+
+export VAULT_TOKEN="my_root_token"
+
+# vault secrets enable -path=test_path kv-v2
+vault kv put secret/test_path/bar key1=value1 key2=value2
+
+vault policy write my_test_policy test_policy.hcl
