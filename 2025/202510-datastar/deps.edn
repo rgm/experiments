@@ -1,6 +1,7 @@
 {:paths ["src" "resources"]
- :deps {ring/ring {:mvn/version "1.15.3"}
-        athos/pogonos {:git/url "https://github.com/athos/pogonos"
+ :deps {athos/pogonos {:git/url "https://github.com/athos/pogonos"
                        :git/sha "e2d5c3746e6d5ed43cbcf07b0cb4ccf64ca1e906"}
-        metosin/reitit {:mvn/version "0.9.1"}
-        metosin/reitit-ring {:mvn/version "0.9.1"}}}
+        metosin/reitit-ring {:mvn/version "0.9.1"}
+        org.slf4j/slf4j-simple {:mvn/version "2.0.17"}
+        ring/ring {:mvn/version "1.15.3"}
+        djblue/portal {:mvn/version "0.61.0"}}}
