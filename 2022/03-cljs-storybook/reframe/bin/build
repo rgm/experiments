@@ -1,0 +1,2 @@
+rm -rf out
+clj -M -m cljs.main -co build.edn -O advanced -v -c
