@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+# fsevents
+# Every so often shadow jams out and doesn't hot-reload anymore. Rebooting
+# fseventsd seems to unjam it.
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+sudo pkill -f fseventsd

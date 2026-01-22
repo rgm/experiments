@@ -1,0 +1,20 @@
+{:deps {:aliases [:dev]}
+ :builds {:app
+          {:target :browser
+           :modules {:shared {:entries [myapp.model]}
+
+                     :app {:entries [myapp.frontend.main]
+                           :depends-on #{:shared}
+                           :preloads [day8.re-frame-10x.preload.react-18]}}
+
+           :compiler-options {:source-map true}
+           :asset-path "/"
+           :output-dir "resources/public/js/"
+
+           :dev {:closure-defines {"re_frame.trace.trace_enabled_QMARK_" true
+                                   goog.DEBUG true}}
+           :devtools {:preloads [devtools.preload]
+                      :watch-dir "resources/public"}
+
+           :build-hooks
+           [(shadow.cljs.build-report/hook {:output-to "build-report.html"})]}}}

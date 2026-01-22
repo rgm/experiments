@@ -1,0 +1,16 @@
+{:alias-map {rf re-frame.core}
+ :extra-indents {;; line up re-frame like a defn... reg-* ::kw on same line
+                 re-frame.core/reg-cofx      [[:inner 0]]
+                 re-frame.core/reg-event-db  [[:inner 0]]
+                 re-frame.core/reg-event-fx  [[:inner 0]]
+                 re-frame.core/reg-fx        [[:inner 0]]
+                 re-frame.core/reg-sub       [[:inner 0]]}
+ :indent-line-comments true
+ :indentation? true
+ :insert-missing-whitespace? true
+ :remove-consecutive-blank-lines? true
+ :remove-multiple-non-indenting-spaces? false
+ :remove-surrounding-whitespace? true
+ :remove-trailing-whitespace? true
+ :sort-ns-references? true
+ :split-keypairs-over-multiple-lines? false}

@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "create-react-class": "15.7.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "shadow-cljs": "3.3.5"
+  }
+}
