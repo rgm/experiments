@@ -1,4 +1,4 @@
-{:deps {:aliases [:dev]}
+{:deps true
  :builds {:app
           {:target :browser
            :modules {:shared {:entries [myapp.model]}

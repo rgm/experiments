@@ -1,5 +1,6 @@
 (ns user
   (:require
+   [myapp.backend.main]
    [shadow.cljs.devtools.api]
    [shadow.cljs.devtools.server]))
 
