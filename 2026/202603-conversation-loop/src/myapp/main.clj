@@ -13,13 +13,6 @@
    [taoensso.telemere        :as tel]
    [taoensso.truss           :refer [have]]))
 
-(tel/remove-handler! :default/console)
-(tel/add-handler!
- :my/file (tel/handler:file
-           {:path      "app.log"
-            #_#_:output-fn (tel/pr-signal-fn {:pr-fn :edn})}))
-(tel/call-on-shutdown! tel/stop-handlers!)
-
 (def config
   {:anthropic/api-key (System/getenv "ANTHROPIC_API_KEY")
    :anthropic/api-url "https://api.anthropic.com/v1/messages"
