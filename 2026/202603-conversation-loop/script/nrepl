@@ -6,6 +6,7 @@
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
+. config.env
 
 clj -Sdeps '{:deps {nrepl/nrepl {:mvn/version "1.5.2"}
                     cider/cider-nrepl {:mvn/version "0.58.0"}}}' \

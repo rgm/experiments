@@ -1,3 +1,4 @@
+*.log
 .clj-kondo/.cache
 .clj-kondo/imports
 .lsp

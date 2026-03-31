@@ -13,6 +13,21 @@
    [taoensso.telemere        :as tel]
    [taoensso.truss           :refer [have]]))
 
+(tel/remove-handler! :default/console)
+(tel/add-handler!
+ :my/file (tel/handler:file
+           {:path      "app.log"
+            #_#_:output-fn (tel/pr-signal-fn {:pr-fn :edn})}))
+(tel/call-on-shutdown! tel/stop-handlers!)
+
+(def config
+  {:anthropic/api-key (System/getenv "ANTHROPIC_API_KEY")
+   :anthropic/api-url "https://api.anthropic.com/v1/messages"
+   :anthropic/max-steps 10
+   :anthropic/max-tokens 4096
+   :anthropic/model "claude-sonnet-4-20250514"
+   :http/port (System/getenv "PORT")})
+
 (defn GET:data [_]
   (-> (vec (shuffle (range 10)))
       pr-str
@@ -47,7 +62,7 @@
             (make-handler))
    :stop (constantly :stateless-eh)})
 
-(def mak:server
+(def mak:http-server
   {:start (fn [{:keys [port handler]}]
             (tel/log! ["starting ring server on port" port])
             (let [opts {:port (have integer? port) :join? false}]
@@ -56,13 +71,19 @@
            (tel/log! ["stopping ring server"])
            (.stop this))})
 
+(def mak:interactive-prompt
+  {:start (fn [_]
+            (tel/log! ["starting interactive prompt"]))
+   :stop (fn [_]
+           )})
+
 (defonce ^:clj-reload/keep *system (atom {}))
 
 (defn start []
   (doto *system
     (swap! assoc :handler ((:start mak:handler) nil))
-    (swap! assoc :jetty ((:start mak:server)
-                         {:port 3000 :handler (:handler @*system)})))
+    (swap! assoc :jetty ((:start mak:http-server)
+                         {:port (config :http/port) :handler (:handler @*system)})))
   ::started)
 
 (defn stop []
