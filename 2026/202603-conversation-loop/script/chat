@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+# chat
+# run agent conversation in shell
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+. config.env
+
+clj -M -m agent.chat

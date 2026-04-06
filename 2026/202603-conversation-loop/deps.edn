@@ -1,11 +1,8 @@
 {:paths ["src" "dev"]
- :deps {com.taoensso/telemere {:mvn/version "1.2.1"}
+ :deps {com.github.flow-storm/flow-storm-dbg {:mvn/version "4.5.9"}
+        com.taoensso/telemere {:mvn/version "1.2.1"}
+        djblue/portal {:mvn/version "0.63.1"}
         hato/hato {:mvn/version "1.0.0"}
         io.github.tonsky/clj-reload {:mvn/version "1.0.0"}
-        metosin/reitit {:mvn/version "0.10.1"}
         org.clojure/clojure {:mvn/version "1.12.4"}
-        org.clojure/core.async {:mvn/version "1.9.865"}
-        org.clojure/data.json {:mvn/version "2.5.2"}
-        org.slf4j/slf4j-simple {:mvn/version "2.0.17"}
-        ring/ring {:mvn/version "1.15.3"}
-        ring/ring-defaults {:mvn/version "0.7.0"}}}
+        org.clojure/data.json {:mvn/version "2.5.2"}}}
