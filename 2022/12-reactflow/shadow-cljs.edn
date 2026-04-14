@@ -1,0 +1,5 @@
+{:deps {:aliases []}
+ :dev-http {8000 {:root "public/"}}
+ :builds
+ {:app {:target :browser
+        :modules {:main {:entries [rgm.app]}}}}}
